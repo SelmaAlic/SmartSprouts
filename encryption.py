@@ -12,7 +12,6 @@ def to_encrypt(password):
 
     #generating encryption key using predefined function
     key=PBKDF2(password,salt,dkLen=32)
-
     #actual encryption done using Advanced Encryption Standard (AES) algorithm
     cipher=AES.new(key, AES.MODE_CBC)
     encrypted_password= cipher.encrypt(pad(password.encode(), AES.block_size))

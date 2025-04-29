@@ -1,3 +1,5 @@
+from encryption import to_encrypt
+
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
@@ -22,6 +24,11 @@ def login():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
+
+    #ENCRYPTING PASSWORD, RETURNS ENCRYPTED PASSWORD
+    password=to_encrypt(password)
+    #OVDJE DODATI AUTHENTICATION
+
     cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
     result = cursor.fetchone()
     conn.close()
