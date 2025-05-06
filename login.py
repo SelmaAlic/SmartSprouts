@@ -1,11 +1,8 @@
-from encryption import to_encrypt
-
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import sqlite3
 
-# Define clear_placeholder function globally
 def clear_placeholder(event, entry, placeholder):
     if entry.get() == placeholder:
         entry.delete(0, "end")
@@ -24,11 +21,6 @@ def login():
 
     conn = sqlite3.connect("database.db")
     cursor = conn.cursor()
-
-    #ENCRYPTING PASSWORD, RETURNS ENCRYPTED PASSWORD
-    password=to_encrypt(password)
-    #OVDJE DODATI AUTHENTICATION
-
     cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
     result = cursor.fetchone()
     conn.close()
@@ -48,7 +40,6 @@ def open_create_account_window():
 
     tk.Label(create_window, text="Create Your Account", font=("Comic Sans MS", 18, "bold"), bg="#FFFAF0").pack(pady=20)
 
-    # Create account placeholders
     new_username_entry = tk.Entry(create_window, font=("Arial", 14), bd=2, relief="groove")
     new_username_entry.insert(0, "Username")
     new_username_entry.pack(pady=5)
@@ -61,7 +52,6 @@ def open_create_account_window():
     email_entry.insert(0, "Email")
     email_entry.pack(pady=5)
 
-    # Apply same placeholder logic for create account entries
     new_username_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, new_username_entry, "Username"))
     new_password_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, new_password_entry, "Password"))
     email_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, email_entry, "Email"))
@@ -119,39 +109,43 @@ root.title("Smart Sprouts Login")
 root.state('zoomed')
 root.iconbitmap("logo2.ico")
 
-# Set gradient background with multiple colors and shapes (full screen)
-canvas = tk.Canvas(root, height=root.winfo_screenheight(), width=root.winfo_screenwidth())
-canvas.pack(fill="both", expand=True)
+# Fullscreen dimensions
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
 
-# Add colorful background (adjusted)
-canvas.create_rectangle(0, 0, root.winfo_screenwidth(), root.winfo_screenheight(), fill="#32CD32", outline="")  # Green (whole background)
+# Green border frame
+border_frame = tk.Frame(root, bg="#88B04B", width=screen_width, height=screen_height)
+border_frame.pack(fill="both", expand=True)
 
-# Add playful shapes (adjusted positioning and sizes to look better)
-canvas.create_oval(150, 100, root.winfo_screenwidth() - 150, root.winfo_screenheight() - 200, fill="#FFD700", outline="")  # Yellow oval
-canvas.create_rectangle(350, 250, root.winfo_screenwidth() - 350, root.winfo_screenheight() - 350, fill="#FF6347", outline="")  # Orange rectangle
-canvas.create_oval(250, 400, root.winfo_screenwidth() - 400, root.winfo_screenheight() - 300, fill="#87CEFA", outline="")  # Blue oval
+# Inner content frame
+content_frame = tk.Frame(border_frame, bg="#f7e7ce")
+content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-# Main Frame
-frame = tk.Frame(root, bg="white", bd=5, relief="ridge")
+# Central frame
+frame = tk.Frame(content_frame, bg="#f7e7ce")
 frame.place(relx=0.5, rely=0.5, anchor="center")
+
+# Logo with percentage scaling
 try:
     logo_image = Image.open("logo.png")
-    logo_image = logo_image.resize((250, 250))
+    logo_width = int(screen_width * 0.5)
+    logo_height = int(screen_height * 0.5)
+    logo_image = logo_image.resize((logo_width, logo_height))
     logo_photo = ImageTk.PhotoImage(logo_image)
-    logo_label = tk.Label(frame, image=logo_photo, bg="white")
+    logo_label = tk.Label(frame, image=logo_photo, bg="#f7e7ce")
     logo_label.pack(pady=(10, 0))
 except Exception as e:
     print("Logo not found:", e)
 
 # Username Entry
-username_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove")
+username_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="#172255")
 username_entry.insert(0, "Username")
 username_entry.pack(pady=10)
 username_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, username_entry, "Username"))
 username_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, username_entry, "Username"))
 
 # Password Entry
-password_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove")
+password_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="#172255")
 password_entry.insert(0, "Password")
 password_entry.pack(pady=10)
 password_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, password_entry, "Password"))
@@ -159,28 +153,26 @@ password_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, password_entr
 
 # Remember Me
 remember_me_var = tk.BooleanVar()
-remember_me_check = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 14), bg="white", activebackground="#90ee90")
+remember_me_check = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 14), bg="#f7e7ce", activebackground="#f7e7ce", fg="#172255", selectcolor="#f7e7ce")
 remember_me_check.pack(pady=10)
 
 # Buttons
-buttons_frame = tk.Frame(frame, bg="white")
+buttons_frame = tk.Frame(frame, bg="#f7e7ce")
 buttons_frame.pack(pady=20)
 
-login_button = tk.Button(buttons_frame, text="Login", font=("Arial", 16, "bold"), bg="#32cd32", fg="white", width=12, command=login)
+login_button = tk.Button(buttons_frame, text="Login", font=("Arial", 16, "bold"), bg="#88B04B", fg="white", width=12, command=login)
 login_button.grid(row=0, column=0, padx=10)
 
-create_account_button = tk.Button(buttons_frame, text="Create Account", font=("Arial", 16, "bold"), bg="#4682B4", fg="white", width=16, command=open_create_account_window)
+create_account_button = tk.Button(buttons_frame, text="Create Account", font=("Arial", 16, "bold"), bg="#172255", fg="white", width=16, command=open_create_account_window)
 create_account_button.grid(row=0, column=1, padx=10)
 
-# Hover Effects
-login_button.bind("<Enter>", lambda e: login_button.config(bg="#3ee63e"))
-login_button.bind("<Leave>", lambda e: login_button.config(bg="#32cd32"))
-
-create_account_button.bind("<Enter>", lambda e: create_account_button.config(bg="#5a9bd5"))
-create_account_button.bind("<Leave>", lambda e: create_account_button.config(bg="#4682B4"))
+login_button.bind("<Enter>", lambda e: login_button.config(bg="#7AA739"))
+login_button.bind("<Leave>", lambda e: login_button.config(bg="#88B04B"))
+create_account_button.bind("<Enter>", lambda e: create_account_button.config(bg="#1a3277"))
+create_account_button.bind("<Leave>", lambda e: create_account_button.config(bg="#172255"))
 
 # Forgot Password
-forgot_password_button = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="white", fg="blue", bd=0, command=forgot_password)
+forgot_password_button = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="#f7e7ce", fg="#172255", bd=0, command=forgot_password)
 forgot_password_button.pack(pady=(0, 10))
 
 root.mainloop()
