@@ -4,10 +4,14 @@ conn = sqlite3.connect('cognitive_games.db')
 cursor = conn.cursor()
 
 cursor.execute('''
+DROP TABLE IF EXISTS login_info
+''')
+
+cursor.execute('''
 CREATE TABLE IF NOT EXISTS login_info (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
+    password BLOB NOT NULL
 )
 ''')
 
@@ -35,4 +39,4 @@ CREATE TABLE IF NOT EXISTS rewards (
 conn.commit()
 conn.close()
 
-print("Database setup complete ")
+print("Database updated and ready with secure password storage.")

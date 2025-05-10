@@ -1,179 +1,239 @@
-import tkinter as tk
+import tkinter as tk 
 from tkinter import messagebox
-from PIL import Image, ImageTk
 import sqlite3
+import bcrypt
+from PIL import Image, ImageTk
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-# Define clear_placeholder function globally
+# Baza podataka
+def setup_database():
+    conn = sqlite3.connect('cognitive_games.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS login_info (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+setup_database()
+
+# Centeriranje prozora
+def center_window(win):
+    win.update_idletasks()
+    width = win.winfo_width()
+    height = win.winfo_height()
+    x = (win.winfo_screenwidth() // 2) - (width // 2)
+    y = (win.winfo_screenheight() // 2) - (height // 2)
+    win.geometry(f"{width}x{height}+{x}+{y}")
+
+# Placeholder
 def clear_placeholder(event, entry, placeholder):
     if entry.get() == placeholder:
         entry.delete(0, "end")
+        entry.config(fg='black', show='*' if placeholder == "Password" else '')
 
 def restore_placeholder(event, entry, placeholder):
     if entry.get() == "":
         entry.insert(0, placeholder)
+        entry.config(fg='gray')
+        if placeholder == "Password":
+            entry.config(show='')
 
+# Hover efekti
+def on_enter(e, btn, hover_color):
+    btn.config(bg=hover_color)
+
+def on_leave(e, btn, original_color):
+    btn.config(bg=original_color)
+
+# Login
 def login():
     username = username_entry.get()
     password = password_entry.get()
 
-    if username == "Username" or password == "Password" or not username or not password:
+    if username in ("", "Username") or password in ("", "Password"):
         messagebox.showwarning("Input Error", "Please enter both username and password.")
         return
 
-    conn = sqlite3.connect("database.db")
+    conn = sqlite3.connect("cognitive_games.db")
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
+    cursor.execute("SELECT password FROM login_info WHERE username = ?", (username,))
     result = cursor.fetchone()
     conn.close()
 
-    if result:
-        if remember_me_var.get():
-            print("User wants to be remembered.")
+    if result and bcrypt.checkpw(password.encode(), result[0]):
         messagebox.showinfo("Login Successful", f"Welcome, {username}!")
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
+# Create Account
 def open_create_account_window():
-    create_window = tk.Toplevel(root)
-    create_window.title("Create Account")
-    create_window.geometry("400x500")
-    create_window.configure(bg="#FFFAF0")
+    win = tk.Toplevel(root)
+    win.title("Create Account")
+    win.iconbitmap("logo2.ico")
+    win.configure(bg="#88B04B")
+    win.geometry("400x500")
+    win.grab_set()
 
-    tk.Label(create_window, text="Create Your Account", font=("Comic Sans MS", 18, "bold"), bg="#FFFAF0").pack(pady=20)
+    frame = tk.Frame(win, bg="#f7e7ce", padx=20, pady=20)
+    frame.pack(expand=True, fill="both", padx=10, pady=10)
 
-    # Create account placeholders
-    new_username_entry = tk.Entry(create_window, font=("Arial", 14), bd=2, relief="groove")
-    new_username_entry.insert(0, "Username")
-    new_username_entry.pack(pady=5)
+    tk.Label(frame, text="Create Account", font=("Comic Sans MS", 18, "bold"), bg="#f7e7ce").pack(pady=10)
 
-    new_password_entry = tk.Entry(create_window, font=("Arial", 14), bd=2, relief="groove")
-    new_password_entry.insert(0, "Password")
-    new_password_entry.pack(pady=5)
+    new_user = tk.Entry(frame, font=("Arial", 14), fg="gray")
+    new_user.insert(0, "Username")
+    new_user.pack(pady=5)
 
-    email_entry = tk.Entry(create_window, font=("Arial", 14), bd=2, relief="groove")
-    email_entry.insert(0, "Email")
-    email_entry.pack(pady=5)
+    new_pass = tk.Entry(frame, font=("Arial", 14), fg="gray")
+    new_pass.insert(0, "Password")
+    new_pass.pack(pady=5)
 
-    # Apply same placeholder logic for create account entries
-    new_username_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, new_username_entry, "Username"))
-    new_password_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, new_password_entry, "Password"))
-    email_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, email_entry, "Email"))
+    for e, p in [(new_user, "Username"), (new_pass, "Password")]:
+        e.bind("<FocusIn>", lambda e, ent=e, ph=p: clear_placeholder(e, ent, ph))
+        e.bind("<FocusOut>", lambda e, ent=e, ph=p: restore_placeholder(e, ent, ph))
 
-    new_username_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, new_username_entry, "Username"))
-    new_password_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, new_password_entry, "Password"))
-    email_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, email_entry, "Email"))
+    def create_account():
+        username = new_user.get()
+        password = new_pass.get()
 
-    def create_account_in_db():
-        username = new_username_entry.get()
-        password = new_password_entry.get()
-        email = email_entry.get()
-
-        if username in ("", "Username") or password in ("", "Password") or email in ("", "Email"):
+        if username in ("", "Username") or password in ("", "Password"):
             messagebox.showwarning("Input Error", "Please fill all fields.")
             return
 
-        conn = sqlite3.connect("database.db")
+        hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+
+        conn = sqlite3.connect("cognitive_games.db")
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
-        if cursor.fetchone():
-            messagebox.showerror("Error", "Username already exists. Please choose another one.")
-        else:
-            cursor.execute("INSERT INTO users (username, password, email) VALUES (?, ?, ?)", (username, password, email))
+        try:
+            cursor.execute("INSERT INTO login_info (username, password) VALUES (?, ?)", (username, hashed_pw))
             conn.commit()
             messagebox.showinfo("Success", "Account created successfully!")
-            create_window.destroy()
+            win.destroy()
+        except sqlite3.IntegrityError:
+            messagebox.showerror("Error", "Username already exists.")
         conn.close()
 
-    create_btn = tk.Button(create_window, text="Create Account", font=("Arial", 14, "bold"), bg="#4682B4", fg="white", command=create_account_in_db)
-    create_btn.pack(pady=20)
+    tk.Button(frame, text="Create Account", bg="#4682B4", fg="white", font=("Arial", 14, "bold"), command=create_account).pack(pady=20)
+    center_window(win)
 
-    create_btn.bind("<Enter>", lambda e: create_btn.config(bg="#5a9bd5"))
-    create_btn.bind("<Leave>", lambda e: create_btn.config(bg="#4682B4"))
-
+# Forgot Password
 def forgot_password():
-    forgot_window = tk.Toplevel(root)
-    forgot_window.title("Reset Password")
-    forgot_window.geometry("400x300")
-    forgot_window.configure(bg="#FFFAF0")
+    win = tk.Toplevel(root)
+    win.title("Reset Password")
+    win.iconbitmap("logo2.ico")
+    win.configure(bg="#88B04B")
+    win.geometry("400x300")
+    win.grab_set()
 
-    tk.Label(forgot_window, text="Reset Your Password", font=("Comic Sans MS", 18, "bold"), bg="#FFFAF0").pack(pady=20)
+    frame = tk.Frame(win, bg="#f7e7ce", padx=20, pady=20)
+    frame.pack(expand=True, fill="both", padx=10, pady=10)
 
-    email_entry = tk.Entry(forgot_window, font=("Arial", 14), bd=2, relief="groove")
+    tk.Label(frame, text="Reset Password", font=("Comic Sans MS", 18, "bold"), bg="#f7e7ce").pack(pady=10)
+
+    email_entry = tk.Entry(frame, font=("Arial", 14), fg="gray")
     email_entry.insert(0, "Enter your Email")
     email_entry.pack(pady=10)
 
     email_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, email_entry, "Enter your Email"))
+    email_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, email_entry, "Enter your Email"))
 
-    tk.Button(forgot_window, text="Reset Password", font=("Arial", 14, "bold"), bg="#FF6347", fg="white").pack(pady=20)
+    def send_reset_email():
+        email = email_entry.get()
+        if email == "" or email == "Enter your Email":
+            messagebox.showwarning("Input Error", "Please enter your email.")
+            return
 
-# GUI Setup
+        try:
+            message = MIMEMultipart()
+            message["From"] = "your_email@example.com"
+            message["To"] = email
+            message["Subject"] = "Password Reset Request"
+            body = "Click the link to reset your password."
+            message.attach(MIMEText(body, "plain"))
+
+            with smtplib.SMTP("smtp.example.com", 587) as server:
+                server.starttls()
+                server.login("your_email@example.com", "your_password")
+                server.sendmail(message["From"], message["To"], message.as_string())
+
+            messagebox.showinfo("Success", "Password reset email sent!")
+            win.destroy()
+        except Exception as e:
+            messagebox.showerror("Error", f"Error sending email: {e}")
+
+    tk.Button(frame, text="Reset", font=("Arial", 14, "bold"), bg="#FF6347", fg="white", command=send_reset_email).pack(pady=20)
+    center_window(win)
+
+# Glavni prozor
 root = tk.Tk()
 root.title("Smart Sprouts Login")
 root.state('zoomed')
 root.iconbitmap("logo2.ico")
 
-# Set gradient background with multiple colors and shapes (full screen)
-canvas = tk.Canvas(root, height=root.winfo_screenheight(), width=root.winfo_screenwidth())
-canvas.pack(fill="both", expand=True)
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
 
-# Add colorful background (adjusted)
-canvas.create_rectangle(0, 0, root.winfo_screenwidth(), root.winfo_screenheight(), fill="#32CD32", outline="")  # Green (whole background)
+border_frame = tk.Frame(root, bg="#88B04B", width=screen_width, height=screen_height)
+border_frame.pack(fill="both", expand=True)
 
-# Add playful shapes (adjusted positioning and sizes to look better)
-canvas.create_oval(150, 100, root.winfo_screenwidth() - 150, root.winfo_screenheight() - 200, fill="#FFD700", outline="")  # Yellow oval
-canvas.create_rectangle(350, 250, root.winfo_screenwidth() - 350, root.winfo_screenheight() - 350, fill="#FF6347", outline="")  # Orange rectangle
-canvas.create_oval(250, 400, root.winfo_screenwidth() - 400, root.winfo_screenheight() - 300, fill="#87CEFA", outline="")  # Blue oval
+content_frame = tk.Frame(border_frame, bg="#f7e7ce")
+content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-# Main Frame
-frame = tk.Frame(root, bg="white", bd=5, relief="ridge")
+frame = tk.Frame(content_frame, bg="#f7e7ce")
 frame.place(relx=0.5, rely=0.5, anchor="center")
+
+# Logo
 try:
-    logo_image = Image.open("logo.png")
-    logo_image = logo_image.resize((250, 250))
-    logo_photo = ImageTk.PhotoImage(logo_image)
-    logo_label = tk.Label(frame, image=logo_photo, bg="white")
+    logo_img = Image.open("logo.png")
+    logo_img = logo_img.resize((400, 250))
+    logo_photo = ImageTk.PhotoImage(logo_img)
+    logo_label = tk.Label(frame, image=logo_photo, bg="#f7e7ce")
     logo_label.pack(pady=(10, 0))
 except Exception as e:
     print("Logo not found:", e)
 
-# Username Entry
-username_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove")
+username_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="gray")
 username_entry.insert(0, "Username")
 username_entry.pack(pady=10)
-username_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, username_entry, "Username"))
-username_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, username_entry, "Username"))
 
-# Password Entry
-password_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove")
+password_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="gray", show="")
 password_entry.insert(0, "Password")
 password_entry.pack(pady=10)
-password_entry.bind("<FocusIn>", lambda e: clear_placeholder(e, password_entry, "Password"))
-password_entry.bind("<FocusOut>", lambda e: restore_placeholder(e, password_entry, "Password"))
+
+for e, p in [(username_entry, "Username"), (password_entry, "Password")]:
+    e.bind("<FocusIn>", lambda e, ent=e, ph=p: clear_placeholder(e, ent, ph))
+    e.bind("<FocusOut>", lambda e, ent=e, ph=p: restore_placeholder(e, ent, ph))
+
+# Login i Create Account dugmad u istoj liniji
+button_frame = tk.Frame(frame, bg="#f7e7ce")
+button_frame.pack(pady=5)
+
+login_btn = tk.Button(button_frame, text="Login", font=("Arial", 14, "bold"), bg="#88B04B", fg="white", width=12, command=login)
+login_btn.pack(side="left", padx=10)
+login_btn.bind("<Enter>", lambda e: on_enter(e, login_btn, "#6dbf3d"))
+login_btn.bind("<Leave>", lambda e: on_leave(e, login_btn, "#88B04B"))
+
+create_account_btn = tk.Button(button_frame, text="Create Account", font=("Arial", 14, "bold"), bg="#172255", fg="white", width=16, command=open_create_account_window)
+create_account_btn.pack(side="left", padx=10)
+create_account_btn.bind("<Enter>", lambda e: on_enter(e, create_account_btn, "#4a90e2"))
+create_account_btn.bind("<Leave>", lambda e: on_leave(e, create_account_btn, "#172255"))
 
 # Remember Me
 remember_me_var = tk.BooleanVar()
-remember_me_check = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 14), bg="white", activebackground="#90ee90")
-remember_me_check.pack(pady=10)
-
-# Buttons
-buttons_frame = tk.Frame(frame, bg="white")
-buttons_frame.pack(pady=20)
-
-login_button = tk.Button(buttons_frame, text="Login", font=("Arial", 16, "bold"), bg="#32cd32", fg="white", width=12, command=login)
-login_button.grid(row=0, column=0, padx=10)
-
-create_account_button = tk.Button(buttons_frame, text="Create Account", font=("Arial", 16, "bold"), bg="#4682B4", fg="white", width=16, command=open_create_account_window)
-create_account_button.grid(row=0, column=1, padx=10)
-
-# Hover Effects
-login_button.bind("<Enter>", lambda e: login_button.config(bg="#3ee63e"))
-login_button.bind("<Leave>", lambda e: login_button.config(bg="#32cd32"))
-
-create_account_button.bind("<Enter>", lambda e: create_account_button.config(bg="#5a9bd5"))
-create_account_button.bind("<Leave>", lambda e: create_account_button.config(bg="#4682B4"))
+remember_me_checkbox = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 12), bg="#f7e7ce")
+remember_me_checkbox.pack(pady=5)
 
 # Forgot Password
-forgot_password_button = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="white", fg="blue", bd=0, command=forgot_password)
-forgot_password_button.pack(pady=(0, 10))
+forgot_password_btn = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="#f7e7ce", fg="#172255", bd=0, command=forgot_password)
+forgot_password_btn.pack(pady=(0, 10))
+forgot_password_btn.bind("<Enter>", lambda e: on_enter(e, forgot_password_btn, "#cce7b0"))
+forgot_password_btn.bind("<Leave>", lambda e: on_leave(e, forgot_password_btn, "#f7e7ce"))
 
 root.mainloop()
+
