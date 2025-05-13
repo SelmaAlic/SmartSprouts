@@ -1,11 +1,11 @@
-import tkinter as tk 
+import tkinter as tk
 import random
 import os
 
-class SequenceGameEasy:
+class SequenceGameHard:
     def __init__(self, root):
         self.root = root
-        self.root.title("Sequence Game - Age 3–5")
+        self.root.title("Sequence Game - Age 6–8")
         self.root.configure(bg="#88B04B")
         self.root.state("zoomed")
 
@@ -16,10 +16,10 @@ class SequenceGameEasy:
         self.sequence = []
         self.user_sequence = []
         self.round = 1
-        self.max_rounds = 6
+        self.max_rounds = 10
         self.buttons = {}
         self.colors = ["red", "green", "blue", "yellow"]
-        self.flash_speed = 1000
+        self.flash_speed = 500
 
         self.build_ui()
         self.show_start_button()
@@ -93,11 +93,11 @@ class SequenceGameEasy:
 
     def next_round(self):
         if self.round > self.max_rounds:
-            self.message_label.config(text="Great Job!")
+            self.message_label.config(text="You Won!")
             return
         self.message_label.config(text=f"Round {self.round}")
         self.user_sequence = []
-        self.sequence.append(random.choice(self.colors))
+        self.sequence += [random.choice(self.colors) for _ in range(2)]
         self.root.after(1000, self.play_sequence)
 
     def play_sequence(self):
@@ -108,7 +108,7 @@ class SequenceGameEasy:
         btn = self.buttons[color]
         original = btn["bg"]
         btn.config(bg="white")
-        self.root.after(300, lambda: btn.config(bg=original))
+        self.root.after(200, lambda: btn.config(bg=original))
 
     def user_input(self, color):
         self.user_sequence.append(color)
@@ -117,12 +117,12 @@ class SequenceGameEasy:
                 self.round += 1
                 self.root.after(1000, self.next_round)
         else:
-            self.message_label.config(text="Try Again!")
+            self.message_label.config(text="Wrong! Restarting...")
             self.sequence = []
             self.round = 1
             self.root.after(2000, self.start_game)
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = SequenceGameEasy(root)
+    app = SequenceGameHard(root)
     root.mainloop()

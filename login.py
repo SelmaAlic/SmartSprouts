@@ -7,7 +7,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# Baza podataka
+#dtaabse 
 def setup_database():
     conn = sqlite3.connect('cognitive_games.db')
     cursor = conn.cursor()
