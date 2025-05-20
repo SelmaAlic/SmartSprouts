@@ -1,25 +1,16 @@
 import pygame
 import random
 import os
-#from PIL import Image
 import math
-#import animation
+
 
 # beige color rgb 247, 231, 206
 # dark green rgb(44, 129, 2)
 # dark blue rgb(23, 34, 85)
 
 MAX_LEVEL = 10
-
-# initializing
 pygame.init()
-WIDTH, HEIGHT = 950, 800
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
-pygame.display.set_caption("Memory Card Game")
-
-BUTTON_WIDTH, BUTTON_HEIGHT = 200, 50
-BUTTON_GAP = 40
+WIDTH, HEIGHT = 1300, 780
 
 # paths and fonts
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,14 +19,39 @@ image_folder = os.path.join(script_dir, "images")
 font= pygame.font.Font('Pixellettersful.ttf', 46)
 #font= pygame.font.Font('KidsMagazine.ttf', 28)
 
-# Load the image
-logo = pygame.image.load('logo.png')
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+logo_original = pygame.image.load('logo.png').convert_alpha()
+logo_icon = pygame.transform.smoothscale(logo_original, (32, 32))
+
+pygame.display.set_caption("Memory Card Game")
+pygame.display.set_icon(logo_icon)
+
+BUTTON_WIDTH, BUTTON_HEIGHT = 200, 50
+BUTTON_GAP = 40
+
+HEADER_HEIGHT = 150  
+BUTTONS_HEIGHT = 100 
+PADDING = 20  
+
+GREEN = (44, 129, 2)
+BORDER_THICKNESS = 6 
 
 # constants
 CARD_WIDTH, CARD_HEIGHT = 250, 250
 MARGIN = 10
-total_images = 7
+total_images = 11
 used_images = set()
+
+
+achievements = {
+    "finish_5_levels": False,
+    "finish_all_levels": False,
+    "finish_5_levels_3_mistakes": False,
+    "finish_all_levels_3_mistakes": False
+}
+
+level_mistakes = [None] * MAX_LEVEL 
+
 
 class Button:
     def __init__(self, text, x, y, width=300, height=100):
@@ -71,163 +87,280 @@ def get_level_images(level):
     used_images.update(selected)
     return [pygame.image.load(os.path.join(image_folder, f"{i}.png")).convert_alpha() for i in selected]
 
-def calculate_centered_grid(card_count, screen_width, screen_height, card_width, card_height):
-    best_cols = 1
-    best_rows = card_count
-    min_diff = card_count
+
+def calculate_centered_grid(card_count, current_width, current_height, card_width, card_height, margin=10, min_card_size=20):
+    options = []
     for cols in range(1, card_count + 1):
         rows = math.ceil(card_count / cols)
-        grid_width = cols * (card_width + MARGIN) - MARGIN
-        grid_height = rows * (card_height + MARGIN) - MARGIN
-        if grid_width <= screen_width and grid_height <= screen_height:
-            diff = abs(rows - cols)
-            if diff < min_diff:
-                min_diff = diff
-                best_cols = cols
-                best_rows = rows
-    grid_width = best_cols * (card_width + MARGIN) - MARGIN
-    grid_height = best_rows * (card_height + MARGIN) - MARGIN
-    start_x = (screen_width - grid_width) // 2
-    start_y = (screen_height - grid_height) // 2
-    return best_rows, best_cols, start_x, start_y, grid_width, grid_height
+        grid_w = cols * (card_width + margin) - margin
+        grid_h = rows * (card_height + margin) - margin
+        if grid_w <= current_width and grid_h <= current_height:
+            options.append((rows, cols, grid_w, grid_h, card_width, card_height))
+    if options:
+        rows, cols, grid_w, grid_h, card_w, card_h = min(options, key=lambda x: (abs(x[0] - x[1]), -x[1]))
+    else:
+        best = None
+        for cols in range(1, card_count + 1):
+            rows = math.ceil(card_count / cols)
+            scale_w = (current_width - margin * (cols - 1)) / cols
+            scale_h = (current_height - margin * (rows - 1)) / rows
+            scale = min(scale_w / card_width, scale_h / card_height, 1.0)
+            new_card_w = max(int(card_width * scale), min_card_size)
+            new_card_h = max(int(card_height * scale), min_card_size)
+            grid_w = cols * (new_card_w + margin) - margin
+            grid_h = rows * (new_card_h + margin) - margin
+            if grid_w <= current_width and grid_h <= current_height:
+                if best is None or abs(rows - cols) < abs(best[0] - best[1]):
+                    best = (rows, cols, grid_w, grid_h, new_card_w, new_card_h)
+        if best:
+            rows, cols, grid_w, grid_h, card_w, card_h = best
+        else:
+            cols = max(1, min(card_count, current_width // (min_card_size + margin)))
+            rows = math.ceil(card_count / cols)
+            card_w = card_h = min_card_size
+            grid_w = cols * (card_w + margin) - margin
+            grid_h = rows * (card_h + margin) - margin
+    start_x = (current_width - grid_w) // 2
+    start_y = (current_height - grid_h) // 2
+    return rows, cols, start_x, start_y, card_w, card_h, grid_w, grid_h
+
+
 
 def main():
+    screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+    clock = pygame.time.Clock()
     level = 0
     running = True
-    clock = pygame.time.Clock()
-
+    mistakes = 0
+    show_try_again = False
+    try_again_start_time = 0
     level_completed = False
-    game_completed = False  
-
+    game_completed = False
     cards = []
     card_states = []
     flipped_indices = []
     wait_time = 0
-    rows, cols, start_x, start_y = 0, 0, 0, 0
+    achievement_popups = []
+    ACHIEVEMENT_POPUP_DURATION = 2000
+    card_back = pygame.image.load(os.path.join(image_folder, 'back.png'))
+
+    def unlock_sticker(achievement_name):
+        print(f"Sticker unlocked for achievement: {achievement_name}")
+        achievement_popups.append((achievement_name, pygame.time.get_ticks()))
+        # Add database call here if needed!!!!!!!!
+
+    def check_achievements():
+        if sum(m is not None for m in level_mistakes) >= 5:
+            if not achievements["finish_5_levels"]:
+                achievements["finish_5_levels"] = True
+                unlock_sticker("finish_5_levels")
+        if all(m is not None for m in level_mistakes):
+            if not achievements["finish_all_levels"]:
+                achievements["finish_all_levels"] = True
+                unlock_sticker("finish_all_levels")
+        if sum((m is not None and m <= 3) for m in level_mistakes) >= 5:
+            if not achievements["finish_5_levels_3_mistakes"]:
+                achievements["finish_5_levels_3_mistakes"] = True
+                unlock_sticker("finish_5_levels_3_mistakes")
+        if all((m is not None and m <= 3) for m in level_mistakes):
+            if not achievements["finish_all_levels_3_mistakes"]:
+                achievements["finish_all_levels_3_mistakes"] = True
+                unlock_sticker("finish_all_levels_3_mistakes")
 
     def initialize_level():
-        nonlocal cards, card_states, flipped_indices, wait_time, level_completed, rows, cols, start_x, start_y, grid_width, grid_height
+        nonlocal cards, card_states, flipped_indices, wait_time, level_completed
+        nonlocal rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height, mistakes
         images = get_level_images(level)
         cards = images * 2
+        mistakes = 0
         random.shuffle(cards)
-        rows, cols, start_x, start_y, grid_width, grid_height = calculate_centered_grid(
-            len(cards), 900, 750, CARD_WIDTH, CARD_HEIGHT
+        current_width, current_height = screen.get_width(), screen.get_height()
+        available_height = current_height - HEADER_HEIGHT - BUTTONS_HEIGHT - PADDING
+        rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = calculate_centered_grid(
+            card_count=len(cards),
+            current_width=current_width,
+            current_height=available_height,
+            card_width=CARD_WIDTH,
+            card_height=CARD_HEIGHT,
+            margin=MARGIN,
+            min_card_size=60
         )
+        start_y += HEADER_HEIGHT
         card_states = ["hidden"] * len(cards)
         flipped_indices = []
         wait_time = 0
         level_completed = False
-        return rows, cols, start_x, start_y, grid_width, grid_height
+        return rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height
 
-    rows, cols, start_x, start_y, grid_width, grid_height = initialize_level()
-    card_back = pygame.image.load(os.path.join(image_folder, 'back.png'))
+    # initializing the first level
+    current_width, current_height = screen.get_width(), screen.get_height()
+    available_height = current_height - HEADER_HEIGHT - BUTTONS_HEIGHT - PADDING
+    rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
 
+    wait_time = 0
+    wait_indices = []
+
+       
     while running:
-        screen.fill((247, 231, 206))
-
-        if game_completed:
-            congrats_text = font.render("Congratulations! You finished all levels!", True, (23, 34, 85))
-            text_rect = congrats_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
-            screen.blit(congrats_text, text_rect)
-            pygame.display.flip()
-        else:
-             # Display the image
-            screen.blit(logo, (0, 0))
-            # current level text
-            level_text = font.render(f"Level {level + 1}", True, (23, 34, 85))
-            screen.blit(level_text, (20, 20))
-
-            # cards drawing
-            for idx, card_img in enumerate(cards):
-                row = idx // cols
-                col = idx % cols
-                x = start_x + col * (CARD_WIDTH + MARGIN)
-                y = start_y + row * (CARD_HEIGHT + MARGIN)
-                rect = pygame.Rect(x, y, CARD_WIDTH, CARD_HEIGHT)
-                if card_states[idx] in ["matched", "flipped"]:
-                    screen.blit(pygame.transform.scale(card_img, (CARD_WIDTH, CARD_HEIGHT)), rect.topleft)
-                else:
-                    screen.blit(pygame.transform.scale(card_back, (CARD_WIDTH, CARD_HEIGHT)), rect.topleft)
-
-            # level completion check
-            if not level_completed and all(state == "matched" for state in card_states):
-                level_completed = True
-                if level >= MAX_LEVEL - 1:
-                    game_completed = True
-
-            # drawing buttons
-            if level_completed and not game_completed:
-                buttons_y = start_y + grid_height + 30
-                total_buttons_width = BUTTON_WIDTH * 2 + BUTTON_GAP
-                buttons_start_x = (screen.get_width() - total_buttons_width) // 2
-
-                prev_level_button = Button("Previous", buttons_start_x, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
-                next_level_button = Button("Next", buttons_start_x + BUTTON_WIDTH + BUTTON_GAP, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
-
-                if level > 0:
-                    prev_level_button.draw(screen)
-                if level < MAX_LEVEL - 1:
-                    next_level_button.draw(screen)
-
-            pygame.display.flip()
-
-        # event handling
+    #  Handle input/events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                current_width, current_height = event.w, event.h
+                available_height = current_height - HEADER_HEIGHT - BUTTONS_HEIGHT - PADDING
+                rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = calculate_centered_grid(
+                    card_count=len(cards),
+                    current_width=current_width,
+                    current_height=available_height,
+                    card_width=CARD_WIDTH,
+                    card_height=CARD_HEIGHT,
+                    margin=MARGIN,
+                    min_card_size=60
+                )
+                start_y += HEADER_HEIGHT
+
+            if show_try_again:
+                continue
 
             if not game_completed and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if level_completed:
-                    # centering buttons
                     buttons_y = start_y + grid_height + 30
                     total_buttons_width = BUTTON_WIDTH * 2 + BUTTON_GAP
-                    buttons_start_x = (screen.get_width() - total_buttons_width) // 2
-
+                    buttons_start_x = (current_width - total_buttons_width) // 2
                     prev_level_button = Button("Previous Level", buttons_start_x, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     next_level_button = Button("Next Level", buttons_start_x + BUTTON_WIDTH + BUTTON_GAP, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
-
                     if level < MAX_LEVEL - 1 and next_level_button.rect.collidepoint(event.pos):
                         level += 1
-                        rows, cols, start_x, start_y, grid_width, grid_height = initialize_level()
+                        rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
                     elif level > 0 and prev_level_button.rect.collidepoint(event.pos):
                         level -= 1
                         used_images.clear()
-                        rows, cols, start_x, start_y, grid_width, grid_height = initialize_level()
+                        rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
                 else:
                     mouse_pos = event.pos
                     for idx in range(len(cards)):
                         row = idx // cols
                         col = idx % cols
-                        x = start_x + col * (CARD_WIDTH + MARGIN)
-                        y = start_y + row * (CARD_HEIGHT + MARGIN)
-                        rect = pygame.Rect(x, y, CARD_WIDTH, CARD_HEIGHT)
+                        x = start_x + col * (card_w + MARGIN)
+                        y = start_y + row * (card_h + MARGIN)
+                        rect = pygame.Rect(x, y, card_w, card_h)
                         if rect.collidepoint(mouse_pos):
-                            if card_states[idx] == "hidden" and len(flipped_indices) < 2:
+                            if card_states[idx] == "hidden" and len(flipped_indices) < 2 and wait_time == 0:
                                 card_states[idx] = "flipped"
                                 flipped_indices.append(idx)
                             break
 
-        # match checking 
-        if len(flipped_indices) == 2 and wait_time == 0:
-            first, second = flipped_indices
-            if cards[first] == cards[second]:
-                card_states[first] = "matched"
-                card_states[second] = "matched"
+    # 2. Update game logic
+        if not level_completed and len(flipped_indices) == 2 and wait_time == 0:
+            i1, i2 = flipped_indices
+            if cards[i1] == cards[i2]:
+                card_states[i1] = card_states[i2] = "matched"
                 flipped_indices.clear()
             else:
-                wait_time = pygame.time.get_ticks() + 1000
+                mistakes += 1
+                wait_time = pygame.time.get_ticks()
+                wait_indices = [i1, i2]
 
-        # flipping back unmatched cards after delay
-        if wait_time > 0 and pygame.time.get_ticks() >= wait_time:
-            for idx in flipped_indices:
+        if wait_time and pygame.time.get_ticks() - wait_time > 1000:
+            for idx in wait_indices:
                 if card_states[idx] != "matched":
                     card_states[idx] = "hidden"
             flipped_indices.clear()
             wait_time = 0
+            wait_indices = []
 
-        clock.tick(30)
+        if mistakes >= 5 and not show_try_again:
+            show_try_again = True
+            try_again_start_time = pygame.time.get_ticks()
 
-    pygame.quit()
+        if show_try_again and pygame.time.get_ticks() - try_again_start_time > 1500:
+            mistakes = 0
+            show_try_again = False
+            rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
+
+    # 3. Draw everything
+        current_width, current_height = screen.get_width(), screen.get_height()
+        available_height = current_height - HEADER_HEIGHT - BUTTONS_HEIGHT - PADDING
+
+        logo_height = int(HEADER_HEIGHT * 0.8)
+        logo_width = int(logo_original.get_width() * (logo_height / logo_original.get_height()))
+        logo_resized = pygame.transform.smoothscale(logo_original, (logo_width, logo_height))
+
+        screen.fill((247, 231, 206))
+        pygame.draw.rect(screen, GREEN, (0, 0, current_width, current_height), BORDER_THICKNESS)
+
+        if game_completed:
+            screen.fill((247, 231, 206))
+            congrats_text = font.render("Congratulations! You finished all levels!", True, (23, 34, 85))
+            text_rect = congrats_text.get_rect(center=(current_width // 2, current_height // 2 - 40))
+            screen.blit(congrats_text, text_rect)
+            buttons_start_x = (current_width - BUTTON_WIDTH) // 2
+            buttons_y = text_rect.bottom + 30
+            play_again_button = Button("Play Again", buttons_start_x, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
+            play_again_button.draw(screen)
+            pygame.display.flip()
+            continue
+
+        screen.blit(logo_resized, (10, 10))
+        level_text = font.render(f"Level {level + 1}", True, (23, 34, 85))
+        screen.blit(level_text, (logo_width + 30, 40))
+        mistake_text = font.render(f"Mistakes: {mistakes}/5", True, (200, 50, 50))
+        screen.blit(mistake_text, (current_width - 220, 40))
+
+        for idx, card_img in enumerate(cards):
+            row = idx // cols
+            col = idx % cols
+            x = start_x + col * (card_w + MARGIN)
+            y = start_y + row * (card_h + MARGIN)
+            rect = pygame.Rect(x, y, card_w, card_h)
+            if card_states[idx] in ["matched", "flipped"]:
+                screen.blit(pygame.transform.smoothscale(card_img, (card_w, card_h)), rect.topleft)
+            else:
+                screen.blit(pygame.transform.smoothscale(card_back, (card_w, card_h)), rect.topleft)
+
+        if not level_completed and all(state == "matched" for state in card_states):
+            level_completed = True
+            level_mistakes[level] = mistakes
+            check_achievements()
+            if level >= MAX_LEVEL - 1:
+                game_completed = True
+
+        if level_completed and not game_completed:
+            buttons_y = start_y + grid_height + 30
+            total_buttons_width = BUTTON_WIDTH * 2 + BUTTON_GAP
+            buttons_start_x = (current_width - total_buttons_width) // 2
+            prev_level_button = Button("Previous", buttons_start_x, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
+            next_level_button = Button("Next", buttons_start_x + BUTTON_WIDTH + BUTTON_GAP, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
+            if level > 0:
+                prev_level_button.draw(screen)
+            if level < MAX_LEVEL - 1:
+                next_level_button.draw(screen)
+
+        if show_try_again:
+            overlay = pygame.Surface((current_width, current_height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180))
+            screen.blit(overlay, (0, 0))
+            try_again_text = font.render("Try Again!", True, (255, 255, 255))
+            text_rect = try_again_text.get_rect(center=(current_width // 2, current_height // 2))
+            screen.blit(try_again_text, text_rect)
+
+        now = pygame.time.get_ticks()
+        for popup in achievement_popups[:]:
+            text, start_time = popup
+            if now - start_time < ACHIEVEMENT_POPUP_DURATION:
+                popup_surface = font.render(f"Achievement Unlocked: {text}", True, (255, 255, 255))
+                popup_rect = popup_surface.get_rect(bottomright=(current_width - 20, current_height - 20))
+                bg_rect = popup_rect.inflate(20, 20)
+                pygame.draw.rect(screen, (23, 34, 85), bg_rect, border_radius=10)
+                screen.blit(popup_surface, popup_rect)
+            else:
+                achievement_popups.remove(popup)
+
+    # 4. Flip/update the display
+        pygame.display.flip()
+        clock.tick(60)
 
 if __name__ == "__main__":
     main()
