@@ -21,7 +21,9 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS login_info (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password BLOB NOT NULL
+        password BLOB NOT NULL,
+        sync_pending INTEGER DEFAULT 1,
+        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP           
     )
     ''')
 
@@ -35,7 +37,10 @@ def create_tables(conn):
         best_time REAL,
         mistakes INTEGER DEFAULT 0,
         last_played TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sync_pending INTEGER DEFAULT 1,
+        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,           
         UNIQUE(username, game_name)
+                  
     )
     ''')
 
@@ -56,7 +61,9 @@ def create_tables(conn):
         username TEXT NOT NULL,
         sticker_name TEXT NOT NULL,
         unlocked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(username) REFERENCES login_info(username) ON DELETE CASCADE
+        sync_pending INTEGER DEFAULT 1,
+        last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,           
+        FOREIGN KEY(username) REFERENCES login_info(username) ON DELETE CASCADE          
     )
     ''')
 
