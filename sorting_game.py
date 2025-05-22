@@ -8,7 +8,6 @@ FRAME_GREEN   = (136, 176,  75)
 CREAM_BG      = (247, 231, 206)
 BLACK         = (  0,   0,   0)
 
-# Sorting colors (bins and circles)
 CORAL_RED     = (255, 111,  97)
 PALETTE_GREEN = (136, 176,  75)
 PERIWINKLE    = (146, 141, 209)
@@ -23,7 +22,6 @@ LEVEL_COLORS  = [
 ]
 LEVEL_THRESHOLDS = [5, 12, 20]
 
-# Dimensions
 WIDTH, HEIGHT    = 800, 600
 CONTENT_MARGIN   = 20
 FPS              = 60
@@ -92,7 +90,7 @@ class Bin:
 # ---------------------------------------------------------------------------#
 def run_game():
     pygame.init()
-    # Window icon support
+
     try:
         icon = pygame.image.load('logo.png')
         pygame.display.set_icon(icon)
@@ -103,7 +101,7 @@ def run_game():
     pygame.display.set_caption("Color Sort")
     clock = pygame.time.Clock()
 
-    # Precompute frame & content background
+
     background = pygame.Surface((WIDTH, HEIGHT))
     background.fill(FRAME_GREEN)
     content_rect = pygame.Rect(CONTENT_MARGIN, CONTENT_MARGIN,
@@ -111,11 +109,10 @@ def run_game():
                                HEIGHT - 2*CONTENT_MARGIN)
     pygame.draw.rect(background, CREAM_BG, content_rect)
 
-    # Fonts
     font     = pygame.font.SysFont(None, 36)
     big_font = pygame.font.SysFont(None, 72)
 
-    # Initialize level
+
     current_level = 0
     bins = [Bin(col, i, len(LEVEL_COLORS[0]), content_rect)
             for i, col in enumerate(LEVEL_COLORS[0])]
@@ -165,13 +162,13 @@ def run_game():
         if remaining <= 0:
             running = False
 
-        # Draw everything
+
         screen.blit(background, (0, 0))
         for b in bins:
             b.draw(screen)
         circle.draw(screen)
 
-        # HUD with navy text
+
         score_surf = font.render(f"Score: {score}", True, NAVY)
         timer_surf = font.render(f"Time: {remaining}s", True, NAVY)
         screen.blit(score_surf, (content_rect.left + 10, content_rect.top + 10))
@@ -180,7 +177,7 @@ def run_game():
 
         pygame.display.flip()
 
-    # Game over screen
+
     screen.blit(background, (0, 0))
     over_text = big_font.render("Time's Up!", True, NAVY)
     final_text = font.render(f"Your Score: {score}", True, NAVY)

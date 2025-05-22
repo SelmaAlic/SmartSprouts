@@ -84,7 +84,7 @@ def run_game():
     pygame.display.set_caption("Number Sort")
     clock = pygame.time.Clock()
 
-    # Prepare background/frame
+
     bg = pygame.Surface((WIDTH,HEIGHT))
     bg.fill(FRAME_GREEN)
     content = pygame.Rect(MARGIN,MARGIN,WIDTH-2*MARGIN,HEIGHT-2*MARGIN)
@@ -102,7 +102,7 @@ def run_game():
 
     score = 0
     start = time.time()
-    is_full = False   # track fullscreen state
+    is_full = False
 
     running = True
     while running:
@@ -133,13 +133,12 @@ def run_game():
                                 if level<len(LEVEL_THRESHOLDS) and score>=LEVEL_THRESHOLDS[level]:
                                     level+=1
 
-                                    # ### FULL-SCREEN POPUP SEQUENCE ###
-                                    # 1) go fullscreen if not already
+
                                     if not is_full:
                                         is_full=True
                                         screen = pygame.display.set_mode((WIDTH,HEIGHT),pygame.FULLSCREEN)
 
-                                    # 2) draw overlay at new resolution
+
                                     w,h = screen.get_size()
                                     overlay = pygame.Surface((w,h),pygame.SRCALPHA)
                                     overlay.fill((255,255,255,220))
@@ -149,11 +148,11 @@ def run_game():
                                     pygame.display.flip()
                                     pygame.time.wait(1500)
 
-                                    # 3) restore windowed if we forced fullscreen
-                                    if not is_full:  # only restore if we changed
+
+                                    if not is_full:
                                         screen = pygame.display.set_mode((WIDTH,HEIGHT))
 
-                                    # 4) rebuild bins
+
                                     bins = [
                                         Bin(lo,hi,i,len(LEVEL_RANGES[level]),content)
                                         for i,(lo,hi) in enumerate(LEVEL_RANGES[level])
@@ -171,7 +170,7 @@ def run_game():
         if remaining<=0:
             running=False
 
-        # draw everything each frame
+
         screen.blit(bg,(0,0))
         for b in bins: b.draw(screen,hud_font)
         circle.draw(screen,num_font)
@@ -179,7 +178,7 @@ def run_game():
         screen.blit(hud_font.render(f"Time: {remaining}s",True,NAVY),(content.right-140,content.top+10))
         pygame.display.flip()
 
-    # GAME OVER
+
     screen.blit(bg,(0,0))
     over = msg_font.render("Time's Up!",True,NAVY)
     final= hud_font.render(f"Score: {score}",True,NAVY)
