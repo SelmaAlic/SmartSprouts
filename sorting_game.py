@@ -3,92 +3,89 @@ import random
 import sys
 import time
 
-NAVY          = (23,  34,  85)
-FRAME_GREEN   = (136, 176,  75)
-CREAM_BG      = (247, 231, 206)
-BLACK         = (  0,   0,   0)
+def sorting_easy():
+    NAVY          = (23,  34,  85)
+    FRAME_GREEN   = (136, 176,  75)
+    CREAM_BG      = (247, 231, 206)
+    BLACK         = (  0,   0,   0)
 
-CORAL_RED     = (255, 111,  97)
-PALETTE_GREEN = (136, 176,  75)
-PERIWINKLE    = (146, 141, 209)
-YELLOW        = (249, 199,  79)
-PURPLE        = (247, 202, 201)
+    CORAL_RED     = (255, 111,  97)
+    PALETTE_GREEN = (136, 176,  75)
+    PERIWINKLE    = (146, 141, 209)
+    YELLOW        = (249, 199,  79)
+    PURPLE        = (247, 202, 201)
 
-LEVEL_COLORS  = [
-    [CORAL_RED,      PALETTE_GREEN],
-    [CORAL_RED,      PALETTE_GREEN, PERIWINKLE],
-    [CORAL_RED,      PALETTE_GREEN, PERIWINKLE, YELLOW],
-    [CORAL_RED,      PALETTE_GREEN, PERIWINKLE, YELLOW, PURPLE]
-]
-LEVEL_THRESHOLDS = [5, 12, 20]
+    LEVEL_COLORS  = [
+        [CORAL_RED,      PALETTE_GREEN],
+        [CORAL_RED,      PALETTE_GREEN, PERIWINKLE],
+        [CORAL_RED,      PALETTE_GREEN, PERIWINKLE, YELLOW],
+        [CORAL_RED,      PALETTE_GREEN, PERIWINKLE, YELLOW, PURPLE]
+    ]
+    LEVEL_THRESHOLDS = [5, 12, 20]
 
-WIDTH, HEIGHT    = 800, 600
-CONTENT_MARGIN   = 20
-FPS              = 60
-CIRCLE_RADIUS    = 32
-BIN_HEIGHT       = 120
-TIMER_SECONDS    = 110
+    WIDTH, HEIGHT    = 800, 600
+    CONTENT_MARGIN   = 20
+    FPS              = 60
+    CIRCLE_RADIUS    = 32
+    BIN_HEIGHT       = 120
+    TIMER_SECONDS    = 110
 
-class Circle:
-    def __init__(self, colors, content_rect):
-        self.colors       = colors
-        self.color        = random.choice(colors)
-        self.content_rect = content_rect
-        self.reset_position()
+    class Circle:
+        def __init__(self, colors, content_rect):
+            self.colors       = colors
+            self.color        = random.choice(colors)
+            self.content_rect = content_rect
+            self.reset_position()
 
-    def reset_position(self):
-        left  = self.content_rect.left + CIRCLE_RADIUS
-        right = self.content_rect.right - CIRCLE_RADIUS
-        top   = self.content_rect.top + CIRCLE_RADIUS
-        bottom_third = self.content_rect.top + self.content_rect.height // 3
-        self.x = random.randint(left, right)
-        self.y = random.randint(top, bottom_third)
-        self.dragging = False
-        self.offset_x = self.offset_y = 0
+        def reset_position(self):
+            left  = self.content_rect.left + CIRCLE_RADIUS
+            right = self.content_rect.right - CIRCLE_RADIUS
+            top   = self.content_rect.top + CIRCLE_RADIUS
+            bottom_third = self.content_rect.top + self.content_rect.height // 3
+            self.x = random.randint(left, right)
+            self.y = random.randint(top, bottom_third)
+            self.dragging = False
+            self.offset_x = self.offset_y = 0
 
-    def draw(self, surface):
-        pygame.draw.circle(surface, self.color, (self.x, self.y), CIRCLE_RADIUS)
-        pygame.draw.circle(surface, BLACK, (self.x, self.y), CIRCLE_RADIUS, 2)
+        def draw(self, surface):
+            pygame.draw.circle(surface, self.color, (self.x, self.y), CIRCLE_RADIUS)
+            pygame.draw.circle(surface, BLACK, (self.x, self.y), CIRCLE_RADIUS, 2)
 
-    def is_mouse_over(self, pos):
-        dx, dy = pos[0] - self.x, pos[1] - self.y
-        return dx*dx + dy*dy <= CIRCLE_RADIUS**2
+        def is_mouse_over(self, pos):
+            dx, dy = pos[0] - self.x, pos[1] - self.y
+            return dx*dx + dy*dy <= CIRCLE_RADIUS**2
 
-    def start_drag(self, pos):
-        self.dragging = True
-        self.offset_x = self.x - pos[0]
-        self.offset_y = self.y - pos[1]
+        def start_drag(self, pos):
+            self.dragging = True
+            self.offset_x = self.x - pos[0]
+            self.offset_y = self.y - pos[1]
 
-    def stop_drag(self):
-        self.dragging = False
+        def stop_drag(self):
+            self.dragging = False
 
-    def update_position(self, pos):
-        if self.dragging:
-            self.x = pos[0] + self.offset_x
-            self.y = pos[1] + self.offset_y
+        def update_position(self, pos):
+            if self.dragging:
+                self.x = pos[0] + self.offset_x
+                self.y = pos[1] + self.offset_y
 
-class Bin:
-    def __init__(self, color, idx, total, content_rect):
-        self.color = color
-        width = content_rect.width // total
-        self.rect  = pygame.Rect(
-            content_rect.left + idx*width,
-            content_rect.bottom - BIN_HEIGHT,
-            width,
-            BIN_HEIGHT
-        )
+    class Bin:
+        def __init__(self, color, idx, total, content_rect):
+            self.color = color
+            width = content_rect.width // total
+            self.rect  = pygame.Rect(
+                content_rect.left + idx*width,
+                content_rect.bottom - BIN_HEIGHT,
+                width,
+                BIN_HEIGHT
+            )
 
-    def draw(self, surface):
-        pygame.draw.rect(surface, self.color, self.rect)
-        pygame.draw.rect(surface, BLACK, self.rect, 4)
+        def draw(self, surface):
+            pygame.draw.rect(surface, self.color, self.rect)
+            pygame.draw.rect(surface, BLACK, self.rect, 4)
 
-    def contains(self, circle):
-        return self.rect.collidepoint(circle.x, circle.y)
+        def contains(self, circle):
+            return self.rect.collidepoint(circle.x, circle.y)
 
-# ---------------------------------------------------------------------------#
-# Main game function
-# ---------------------------------------------------------------------------#
-def run_game():
     pygame.init()
 
     try:
@@ -101,7 +98,6 @@ def run_game():
     pygame.display.set_caption("Color Sort")
     clock = pygame.time.Clock()
 
-
     background = pygame.Surface((WIDTH, HEIGHT))
     background.fill(FRAME_GREEN)
     content_rect = pygame.Rect(CONTENT_MARGIN, CONTENT_MARGIN,
@@ -111,7 +107,6 @@ def run_game():
 
     font     = pygame.font.SysFont(None, 36)
     big_font = pygame.font.SysFont(None, 72)
-
 
     current_level = 0
     bins = [Bin(col, i, len(LEVEL_COLORS[0]), content_rect)
@@ -143,7 +138,7 @@ def run_game():
                                 score += 1
                                 placed = True
                             break
-                    # Level-up
+
                     if placed and current_level < len(LEVEL_THRESHOLDS) and score >= LEVEL_THRESHOLDS[current_level]:
                         current_level += 1
                         screen.blit(background, (0,0))
@@ -152,7 +147,7 @@ def run_game():
                                                HEIGHT//2 - 50))
                         pygame.display.flip()
                         pygame.time.wait(1500)
-                        # rebuild bins
+
                         cols = LEVEL_COLORS[current_level]
                         bins = [Bin(col, i, len(cols), content_rect) for i, col in enumerate(cols)]
                     circle = Circle(LEVEL_COLORS[current_level], content_rect)
@@ -162,12 +157,10 @@ def run_game():
         if remaining <= 0:
             running = False
 
-
         screen.blit(background, (0, 0))
         for b in bins:
             b.draw(screen)
         circle.draw(screen)
-
 
         score_surf = font.render(f"Score: {score}", True, NAVY)
         timer_surf = font.render(f"Time: {remaining}s", True, NAVY)
@@ -176,7 +169,6 @@ def run_game():
                                  content_rect.top + 10))
 
         pygame.display.flip()
-
 
     screen.blit(background, (0, 0))
     over_text = big_font.render("Time's Up!", True, NAVY)
@@ -189,4 +181,4 @@ def run_game():
     sys.exit()
 
 if __name__ == "__main__":
-    run_game()
+    sorting_easy()
