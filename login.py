@@ -7,7 +7,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# Baza podataka
 def setup_database():
     conn = sqlite3.connect('cognitive_games.db')
     cursor = conn.cursor()
@@ -23,7 +22,7 @@ def setup_database():
 
 setup_database()
 
-# Centeriranje prozora
+
 def center_window(win):
     win.update_idletasks()
     width = win.winfo_width()
@@ -45,14 +44,14 @@ def restore_placeholder(event, entry, placeholder):
         if placeholder == "Password":
             entry.config(show='')
 
-# Hover efekti
+
 def on_enter(e, btn, hover_color):
     btn.config(bg=hover_color)
 
 def on_leave(e, btn, original_color):
     btn.config(bg=original_color)
 
-# Login
+
 def login():
     username = username_entry.get()
     password = password_entry.get()
@@ -72,7 +71,7 @@ def login():
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
-# Create Account
+
 def open_create_account_window():
     win = tk.Toplevel(root)
     win.title("Create Account")
@@ -122,7 +121,7 @@ def open_create_account_window():
     tk.Button(frame, text="Create Account", bg="#4682B4", fg="white", font=("Arial", 14, "bold"), command=create_account).pack(pady=20)
     center_window(win)
 
-# Forgot Password
+
 def forgot_password():
     win = tk.Toplevel(root)
     win.title("Reset Password")
@@ -170,7 +169,7 @@ def forgot_password():
     tk.Button(frame, text="Reset", font=("Arial", 14, "bold"), bg="#FF6347", fg="white", command=send_reset_email).pack(pady=20)
     center_window(win)
 
-# Glavni prozor
+
 root = tk.Tk()
 root.title("Smart Sprouts Login")
 root.state('zoomed')
@@ -188,7 +187,7 @@ content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 frame = tk.Frame(content_frame, bg="#f7e7ce")
 frame.place(relx=0.5, rely=0.5, anchor="center")
 
-# Logo
+
 try:
     logo_img = Image.open("logo.png")
     logo_img = logo_img.resize((400, 250))
@@ -210,7 +209,7 @@ for e, p in [(username_entry, "Username"), (password_entry, "Password")]:
     e.bind("<FocusIn>", lambda e, ent=e, ph=p: clear_placeholder(e, ent, ph))
     e.bind("<FocusOut>", lambda e, ent=e, ph=p: restore_placeholder(e, ent, ph))
 
-# Login i Create Account dugmad u istoj liniji
+
 button_frame = tk.Frame(frame, bg="#f7e7ce")
 button_frame.pack(pady=5)
 
@@ -224,12 +223,12 @@ create_account_btn.pack(side="left", padx=10)
 create_account_btn.bind("<Enter>", lambda e: on_enter(e, create_account_btn, "#4a90e2"))
 create_account_btn.bind("<Leave>", lambda e: on_leave(e, create_account_btn, "#172255"))
 
-# Remember Me
+
 remember_me_var = tk.BooleanVar()
 remember_me_checkbox = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 12), bg="#f7e7ce")
 remember_me_checkbox.pack(pady=5)
 
-# Forgot Password
+
 forgot_password_btn = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="#f7e7ce", fg="#172255", bd=0, command=forgot_password)
 forgot_password_btn.pack(pady=(0, 10))
 forgot_password_btn.bind("<Enter>", lambda e: on_enter(e, forgot_password_btn, "#cce7b0"))
