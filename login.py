@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+import os
 
 def setup_database():
     conn = sqlite3.connect('cognitive_games.db')
@@ -21,7 +22,6 @@ def setup_database():
     conn.close()
 
 setup_database()
-
 
 def center_window(win):
     win.update_idletasks()
@@ -44,13 +44,11 @@ def restore_placeholder(event, entry, placeholder):
         if placeholder == "Password":
             entry.config(show='')
 
-
 def on_enter(e, btn, hover_color):
     btn.config(bg=hover_color)
 
 def on_leave(e, btn, original_color):
     btn.config(bg=original_color)
-
 
 def login():
     username = username_entry.get()
@@ -71,11 +69,10 @@ def login():
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
-
 def open_create_account_window():
     win = tk.Toplevel(root)
     win.title("Create Account")
-    win.iconbitmap("logo2.ico")
+    win.iconbitmap(os.path.join("assets", "logo2.ico"))
     win.configure(bg="#88B04B")
     win.geometry("400x500")
     win.grab_set()
@@ -121,11 +118,10 @@ def open_create_account_window():
     tk.Button(frame, text="Create Account", bg="#4682B4", fg="white", font=("Arial", 14, "bold"), command=create_account).pack(pady=20)
     center_window(win)
 
-
 def forgot_password():
     win = tk.Toplevel(root)
     win.title("Reset Password")
-    win.iconbitmap("logo2.ico")
+    win.iconbitmap(os.path.join("assets", "logo2.ico"))
     win.configure(bg="#88B04B")
     win.geometry("400x300")
     win.grab_set()
@@ -169,11 +165,10 @@ def forgot_password():
     tk.Button(frame, text="Reset", font=("Arial", 14, "bold"), bg="#FF6347", fg="white", command=send_reset_email).pack(pady=20)
     center_window(win)
 
-
 root = tk.Tk()
 root.title("Smart Sprouts Login")
 root.state('zoomed')
-root.iconbitmap("logo2.ico")
+root.iconbitmap(os.path.join("assets", "logo2.ico"))
 
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
@@ -187,9 +182,8 @@ content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 frame = tk.Frame(content_frame, bg="#f7e7ce")
 frame.place(relx=0.5, rely=0.5, anchor="center")
 
-
 try:
-    logo_img = Image.open("logo.png")
+    logo_img = Image.open(os.path.join("assets", "logo.png"))
     logo_img = logo_img.resize((400, 250))
     logo_photo = ImageTk.PhotoImage(logo_img)
     logo_label = tk.Label(frame, image=logo_photo, bg="#f7e7ce")
@@ -209,7 +203,6 @@ for e, p in [(username_entry, "Username"), (password_entry, "Password")]:
     e.bind("<FocusIn>", lambda e, ent=e, ph=p: clear_placeholder(e, ent, ph))
     e.bind("<FocusOut>", lambda e, ent=e, ph=p: restore_placeholder(e, ent, ph))
 
-
 button_frame = tk.Frame(frame, bg="#f7e7ce")
 button_frame.pack(pady=5)
 
@@ -223,11 +216,9 @@ create_account_btn.pack(side="left", padx=10)
 create_account_btn.bind("<Enter>", lambda e: on_enter(e, create_account_btn, "#4a90e2"))
 create_account_btn.bind("<Leave>", lambda e: on_leave(e, create_account_btn, "#172255"))
 
-
 remember_me_var = tk.BooleanVar()
 remember_me_checkbox = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 12), bg="#f7e7ce")
 remember_me_checkbox.pack(pady=5)
-
 
 forgot_password_btn = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="#f7e7ce", fg="#172255", bd=0, command=forgot_password)
 forgot_password_btn.pack(pady=(0, 10))
