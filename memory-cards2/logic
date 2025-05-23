@@ -89,7 +89,7 @@ def calculate_centered_grid(card_count, current_width, current_height, card_widt
     start_y = (current_height - grid_h) // 2
     return rows, cols, start_x, start_y, card_w, card_h, grid_w, grid_h
 
-def run_memory_game():
+def run_memory_cards_hard():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
     logo_original = pygame.image.load('logo.png').convert_alpha()
@@ -346,4 +346,4 @@ def run_memory_game():
     pygame.quit()
 
 if __name__ == "__main__":
-    run_memory_game()
+    run_memory_cards_hard()
