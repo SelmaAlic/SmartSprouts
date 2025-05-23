@@ -16,8 +16,8 @@ class GameProgressDB:
         base_dir = Path(data_dir) if data_dir else Path(__file__).parent
         
         # setting paths
-        self.db_path = self._resolve_path(db_path, base_dir, "game.db")
-        self.schema_path = self._resolve_path(schema_path, base_dir, "schema.sql")
+        self.db_path = self._resolve_path(db_path, base_dir, "database.db")
+        self.schema_path = self._resolve_path(schema_path, base_dir, "database.sql")
         
         # initializing database
         self.conn = sqlite3.connect(str(self.db_path))
