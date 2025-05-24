@@ -21,7 +21,7 @@ def create_tables(conn):
     CREATE TABLE IF NOT EXISTS login_info (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password BLOB NOT NULL,
+        password TEXT NOT NULL,
         sync_pending INTEGER DEFAULT 1,
         last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP           
     )
@@ -95,7 +95,7 @@ def get_rewards(conn):
 def add_user(conn, username, password):
     try:
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO login_info (username, password) VALUES (?, ?)", (username, password))
+        cursor.execute("INSERT INTO login_info (username, password) VALUES (?, ?)", (username, hashed_pw))
         conn.commit()
     except sqlite3.IntegrityError as e:
         print(f"Error adding user '{username}': {e}")
