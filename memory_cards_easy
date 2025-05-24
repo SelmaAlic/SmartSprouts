@@ -2,13 +2,23 @@ import pygame
 import random
 import os
 import math
+from database import (
+    upsert_progress,
+    unlock_sticker,
+    get_progress,
+    get_unlocked_stickers,
+    ensure_user,
+    init_db,
+    connect_db
+)
+
 
 MAX_LEVEL = 10
 pygame.init()
 WIDTH, HEIGHT = 1300, 780
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-image_folder = os.path.join(script_dir, "images")
+image_folder = os.path.join(script_dir, "assets_m")
 font= pygame.font.Font('Pixellettersful.ttf', 46)
 
 BUTTON_WIDTH, BUTTON_HEIGHT = 200, 50
@@ -51,7 +61,7 @@ def get_level_images(level, used_images):
         available = list(range(1, total_images + 1))
     selected = random.sample(available, pairs)
     used_images.update(selected)
-    return [pygame.image.load(os.path.join(image_folder, f"{i}.png")).convert_alpha() for i in selected]
+    return [pygame.image.load(os.path.join(image_folder, f"memory_easy{i}.png")).convert_alpha() for i in selected]
 
 def calculate_centered_grid(card_count, current_width, current_height, card_width, card_height, margin=10, min_card_size=20):
     options = []
@@ -89,30 +99,68 @@ def calculate_centered_grid(card_count, current_width, current_height, card_widt
     start_y = (current_height - grid_h) // 2
     return rows, cols, start_x, start_y, card_w, card_h, grid_w, grid_h
 
-def run_memory_cards_easy():
+def memory_cards_easy(username):
+    GAME_NAME = "memory_easy"
+    MAX_LEVEL = 10
+
+    progress = get_progress(username, GAME_NAME)
+    unlocked_stickers = set(get_unlocked_stickers(username))
+
+    if progress['best_level'] >= MAX_LEVEL:
+        game_completed = True
+        current_level = MAX_LEVEL
+    elif progress['best_level'] > 0:
+        current_level = progress['best_level']
+        game_completed = False
+    else:
+        current_level = 1
+        game_completed = False
+
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-    logo_original = pygame.image.load('logo.png').convert_alpha()
+    logo_original = pygame.image.load(os.path.join(image_folder, 'logo.png')).convert_alpha()
     logo_icon = pygame.transform.smoothscale(logo_original, (32, 32))
     pygame.display.set_caption("Memory Card Game")
     pygame.display.set_icon(logo_icon)
     clock = pygame.time.Clock()
 
     used_images = set()
-    level = 0
     running = True
     level_completed = False
-    game_completed = False
     cards = []
     card_states = []
     flipped_indices = []
     wait_time = 0
-    card_back = pygame.image.load(os.path.join(image_folder, 'back.png'))
-    total_mistakes = 0  
+    card_back = pygame.image.load(os.path.join(image_folder, 'memory_back.png'))
+    total_mistakes = 0
+
+    achievements = {
+        "finish_1_level": "Sticker_1",
+        "finish_3_levels": "Sticker_3",
+        "finish_all_levels": "Sticker_all"
+    }
+    achievement_popups = []
+    ACHIEVEMENT_POPUP_DURATION = 2000
+
+    def unlock_sticker_achievement(achievement_key):
+        sticker_name = achievements[achievement_key]
+        if sticker_name not in unlocked_stickers:
+            unlock_sticker(username, sticker_name)
+            unlocked_stickers.add(sticker_name)
+            achievement_popups.append((sticker_name, pygame.time.get_ticks()))
+            print(f"Sticker unlocked for achievement: {sticker_name}")
+
+    def check_achievements(level):
+        if level == 1:
+            unlock_sticker_achievement("finish_1_level")
+        if level == 3:
+            unlock_sticker_achievement("finish_3_levels")
+        if level == MAX_LEVEL:
+            unlock_sticker_achievement("finish_all_levels")
 
     def initialize_level():
         nonlocal cards, card_states, flipped_indices, wait_time, level_completed, rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height
-        images = get_level_images(level, used_images)
+        images = get_level_images(current_level, used_images)
         cards = images * 2
         random.shuffle(cards)
         current_width, current_height = screen.get_width(), screen.get_height()
@@ -158,20 +206,23 @@ def run_memory_cards_easy():
 
             if not game_completed and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if level_completed:
-                    # Handle button clicks after level completed
                     current_width, current_height = screen.get_width(), screen.get_height()
                     buttons_y = start_y + grid_height + 30
                     total_buttons_width = BUTTON_WIDTH * 2 + BUTTON_GAP
                     buttons_start_x = (current_width - total_buttons_width) // 2
                     prev_level_button = Button("Previous", buttons_start_x, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
                     next_level_button = Button("Next", buttons_start_x + BUTTON_WIDTH + BUTTON_GAP, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
-                    if level < MAX_LEVEL - 1 and next_level_button.rect.collidepoint(event.pos):
-                        level += 1
+                    if current_level < MAX_LEVEL and next_level_button.rect.collidepoint(event.pos):
+                        current_level += 1
                         rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
-                    elif level > 0 and prev_level_button.rect.collidepoint(event.pos):
-                        level -= 1
+                        level_completed = False
+                        total_mistakes = 0
+                    elif current_level > 1 and prev_level_button.rect.collidepoint(event.pos):
+                        current_level -= 1
                         used_images.clear()
                         rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
+                        level_completed = False
+                        total_mistakes = 0
                 else:
                     mouse_pos = event.pos
                     for idx in range(len(cards)):
@@ -194,7 +245,7 @@ def run_memory_cards_easy():
             else:
                 wait_time = pygame.time.get_ticks()
                 wait_indices = [i1, i2]
-                total_mistakes += 1 
+                total_mistakes += 1
 
         if wait_time and pygame.time.get_ticks() - wait_time > 1000:
             for idx in wait_indices:
@@ -215,7 +266,7 @@ def run_memory_cards_easy():
         pygame.draw.rect(screen, GREEN, (0, 0, current_width, current_height), BORDER_THICKNESS)
 
         screen.blit(logo_resized, (10, 10))
-        level_text = font.render(f"Level {level + 1}", True, (23, 34, 85))
+        level_text = font.render(f"Level {current_level}", True, (23, 34, 85))
         screen.blit(level_text, (logo_width + 30, 40))
 
         for idx, card_img in enumerate(cards):
@@ -231,7 +282,15 @@ def run_memory_cards_easy():
 
         if not level_completed and all(state == "matched" for state in card_states):
             level_completed = True
-            if level >= MAX_LEVEL - 1:
+            check_achievements(current_level)
+            upsert_progress(
+                username=username,
+                game_name=GAME_NAME,
+                best_level=max(current_level, progress['best_level']),
+                best_time=None, 
+                mistakes=total_mistakes
+            )
+            if current_level >= MAX_LEVEL:
                 game_completed = True
 
         if level_completed and not game_completed:
@@ -240,9 +299,9 @@ def run_memory_cards_easy():
             buttons_start_x = (current_width - total_buttons_width) // 2
             prev_level_button = Button("Previous", buttons_start_x, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
             next_level_button = Button("Next", buttons_start_x + BUTTON_WIDTH + BUTTON_GAP, buttons_y, BUTTON_WIDTH, BUTTON_HEIGHT)
-            if level > 0:
+            if current_level > 1:
                 prev_level_button.draw(screen)
-            if level < MAX_LEVEL - 1:
+            if current_level < MAX_LEVEL:
                 next_level_button.draw(screen)
 
         if game_completed:
@@ -272,10 +331,12 @@ def run_memory_cards_easy():
                         current_width, current_height = event.w, event.h
                     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                         if play_again_button_rect.collidepoint(event.pos):
-                            level = 0
-                            game_completed = False
+                            upsert_progress(username, GAME_NAME, 1, None, 0)
+                            current_level = 1
+                            used_images.clear()
                             rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
                             play_again_handled = True
+                            game_completed = False
                 clock.tick(60)
             continue
 
@@ -285,5 +346,6 @@ def run_memory_cards_easy():
     pygame.quit()
 
 if __name__ == "__main__":
-    run_memory_cards_easy()
+    username = input("Enter your username: ")
+    memory_cards_easy(username)
    

@@ -3,12 +3,21 @@ import random
 import os
 import math
 
+from database import (
+    upsert_progress,
+    unlock_sticker,
+    get_progress,
+    get_unlocked_stickers,
+    ensure_user
+)
+
+
 MAX_LEVEL = 10
 pygame.init()
 WIDTH, HEIGHT = 1300, 780
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-image_folder = os.path.join(script_dir, "images") 
+image_folder = os.path.join(script_dir, "assets_m") 
 font= pygame.font.Font('Pixellettersful.ttf', 46)
 
 BUTTON_WIDTH, BUTTON_HEIGHT = 200, 50
@@ -51,7 +60,7 @@ def get_level_images(level, used_images):
         available = list(range(1, total_images + 1))
     selected = random.sample(available, pairs)
     used_images.update(selected)
-    return [pygame.image.load(os.path.join(image_folder, f"{i}.png")).convert_alpha() for i in selected]
+    return [pygame.image.load(os.path.join(image_folder, f"memory_hard{i}.png")).convert_alpha() for i in selected]
 
 def calculate_centered_grid(card_count, current_width, current_height, card_width, card_height, margin=10, min_card_size=20):
     options = []
@@ -89,60 +98,68 @@ def calculate_centered_grid(card_count, current_width, current_height, card_widt
     start_y = (current_height - grid_h) // 2
     return rows, cols, start_x, start_y, card_w, card_h, grid_w, grid_h
 
-def run_memory_cards_hard():
+def memory_cards_hard(username):
+    GAME_NAME = "memory_hard"
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-    logo_original = pygame.image.load('logo.png').convert_alpha()
+    logo_original = pygame.image.load(os.path.join(image_folder, 'logo.png')).convert_alpha()
     logo_icon = pygame.transform.smoothscale(logo_original, (32, 32))
     pygame.display.set_caption("Memory Card Game")
     pygame.display.set_icon(logo_icon)
     clock = pygame.time.Clock()
-
     used_images = set()
+
+    progress = get_progress(username, GAME_NAME)
+    unlocked_stickers = set(get_unlocked_stickers(username))
+
+
+    if progress['best_level'] >= MAX_LEVEL:
+        game_completed = True
+        level = MAX_LEVEL - 1
+    elif progress['best_level'] > 0:
+        level = progress['best_level']
+        game_completed = False
+    else:
+        level = 0
+        game_completed = False
+
     achievements = {
-        "finish_5_levels": False,
-        "finish_all_levels": False,
-        "finish_5_levels_3_mistakes": False,
-        "finish_all_levels_3_mistakes": False
+        "finish_5_levels": "Sticker_5",
+        "finish_all_levels": "Sticker_all",
+        "finish_5_levels_3_mistakes": "Sticker_5_3",
+        "finish_all_levels_3_mistakes": "Sticker_all_3"
     }
     level_mistakes = [None] * MAX_LEVEL
-    level = 0
     running = True
     mistakes = 0
     show_try_again = False
     try_again_start_time = 0
     level_completed = False
-    game_completed = False
     cards = []
     card_states = []
     flipped_indices = []
     wait_time = 0
     achievement_popups = []
     ACHIEVEMENT_POPUP_DURATION = 2000
-    card_back = pygame.image.load(os.path.join(image_folder, 'back.png'))
+    card_back = pygame.image.load(os.path.join(image_folder, 'memory_back.png'))
 
-    def unlock_sticker(achievement_name):
-        print(f"Sticker unlocked for achievement: {achievement_name}")
-        achievement_popups.append((achievement_name, pygame.time.get_ticks()))
-        # Add database call here!!
+    def unlock_sticker_achievement(achievement_key):
+        sticker_name = achievements[achievement_key]
+        if sticker_name not in unlocked_stickers:
+            unlock_sticker(username, sticker_name)
+            unlocked_stickers.add(sticker_name)
+            achievement_popups.append((sticker_name, pygame.time.get_ticks()))
+            print(f"Sticker unlocked for achievement: {sticker_name}")
 
     def check_achievements():
         if sum(m is not None for m in level_mistakes) >= 5:
-            if not achievements["finish_5_levels"]:
-                achievements["finish_5_levels"] = True
-                unlock_sticker("finish_5_levels")
+            unlock_sticker_achievement("finish_5_levels")
         if all(m is not None for m in level_mistakes):
-            if not achievements["finish_all_levels"]:
-                achievements["finish_all_levels"] = True
-                unlock_sticker("finish_all_levels")
+            unlock_sticker_achievement("finish_all_levels")
         if sum((m is not None and m <= 3) for m in level_mistakes) >= 5:
-            if not achievements["finish_5_levels_3_mistakes"]:
-                achievements["finish_5_levels_3_mistakes"] = True
-                unlock_sticker("finish_5_levels_3_mistakes")
+            unlock_sticker_achievement("finish_5_levels_3_mistakes")
         if all((m is not None and m <= 3) for m in level_mistakes):
-            if not achievements["finish_all_levels_3_mistakes"]:
-                achievements["finish_all_levels_3_mistakes"] = True
-                unlock_sticker("finish_all_levels_3_mistakes")
+            unlock_sticker_achievement("finish_all_levels_3_mistakes")
 
     def initialize_level():
         nonlocal cards, card_states, flipped_indices, wait_time, level_completed, mistakes
@@ -207,10 +224,14 @@ def run_memory_cards_hard():
                     if level < MAX_LEVEL - 1 and next_level_button.rect.collidepoint(event.pos):
                         level += 1
                         rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
+                        level_completed = False
+                        mistakes = 0
                     elif level > 0 and prev_level_button.rect.collidepoint(event.pos):
                         level -= 1
                         used_images.clear()
                         rows, cols, start_x, start_y, card_w, card_h, grid_width, grid_height = initialize_level()
+                        level_completed = False
+                        mistakes = 0
                 else:
                     mouse_pos = event.pos
                     for idx in range(len(cards)):
@@ -318,6 +339,13 @@ def run_memory_cards_hard():
             level_completed = True
             level_mistakes[level] = mistakes
             check_achievements()
+            upsert_progress(
+                username=username,
+                game_name=GAME_NAME,
+                best_level=max(level + 1, progress['best_level']),
+                best_time=None,  
+                mistakes=mistakes
+            )
             if level >= MAX_LEVEL - 1:
                 game_completed = True
 
@@ -346,4 +374,5 @@ def run_memory_cards_hard():
     pygame.quit()
 
 if __name__ == "__main__":
-    run_memory_cards_hard()
+    username = input("Enter your username: ")
+    memory_cards_hard(username)
