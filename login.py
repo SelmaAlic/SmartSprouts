@@ -8,8 +8,11 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 
+from auth import authenticate
+from encryption import to_encrypt
+
 def setup_database():
-    conn = sqlite3.connect('cognitive_games.db')
+    conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS login_info (
@@ -58,16 +61,11 @@ def login():
         messagebox.showwarning("Input Error", "Please enter both username and password.")
         return
 
-    conn = sqlite3.connect("cognitive_games.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT password FROM login_info WHERE username = ?", (username,))
-    result = cursor.fetchone()
-    conn.close()
-
-    if result and bcrypt.checkpw(password.encode(), result[0]):
+    if authenticate(username, password):
         messagebox.showinfo("Login Successful", f"Welcome, {username}!")
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
+
 
 def open_create_account_window():
     win = tk.Toplevel(root)
@@ -102,9 +100,9 @@ def open_create_account_window():
             messagebox.showwarning("Input Error", "Please fill all fields.")
             return
 
-        hashed_pw = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        hashed_pw = to_encrypt(password)
 
-        conn = sqlite3.connect("cognitive_games.db")
+        conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
         try:
             cursor.execute("INSERT INTO login_info (username, password) VALUES (?, ?)", (username, hashed_pw))

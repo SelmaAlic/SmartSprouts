@@ -1,22 +1,15 @@
-import sqlite3  # or your database library
+import sqlite3
+from encryption import verify_encryption
 
-def authenticate(username, encrypted_password):
-    # Connect to the database
-    conn = sqlite3.connect('your_database.db')
+def authenticate(username, raw_password):
+    conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
 
-    # Check if the user exists and password matches
-    cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT password FROM login_info WHERE username = ?", (username,)) #gets the password from database
     result = cursor.fetchone()
-
     conn.close()
 
     if result:
         stored_encrypted_password = result[0]
-        if encrypted_password == stored_encrypted_password:
-            return True  # Authentication successful
-        else:
-            return False  # Wrong password
-    else:
-        return False  # User does not exist
-#harunharunhhhhhhh
+        return verify_encryption(raw_password, stored_encrypted_password)
+    return False
