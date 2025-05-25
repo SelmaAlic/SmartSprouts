@@ -1,6 +1,8 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import os
+from login import show_login_window
+from age_picker import age_picker
 
 class HomeScreen:
     def __init__(self, root):
@@ -70,7 +72,8 @@ class HomeScreen:
         pass
 
     def on_login(self):
-        # add function call to login
+        #show_login_window(self.root) wont be login enymore but age picker
+        age_picker()
         pass
 
     def on_sticker(self):
@@ -78,6 +81,7 @@ class HomeScreen:
         pass
 
 if __name__ == "__main__":
+    show_login_window()
     root = tk.Tk()
     app = HomeScreen(root)
     root.mainloop()
