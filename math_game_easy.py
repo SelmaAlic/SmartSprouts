@@ -160,7 +160,7 @@ def math_easy():
 
     #FRONT END
     window=tk.Tk()
-    window.title("SmartSprouts Math Game")
+    window.title("SmartSprouts- Math Game Easy")
     window.configure(bg="#2C8102") #green color, will be seen as border
     window.state("zoomed")
     window.resizable(False,False)
@@ -216,5 +216,3 @@ def math_easy():
     update_equation()
     update_answers()
     window.mainloop()
-
-math_easy()

@@ -112,10 +112,6 @@ def show_login_window(parent=None):
     create_account_btn.bind("<Enter>", lambda e: on_enter(e, create_account_btn, "#4a90e2"))
     create_account_btn.bind("<Leave>", lambda e: on_leave(e, create_account_btn, "#172255"))
 
-    remember_me_var = tk.BooleanVar()
-    remember_me_checkbox = tk.Checkbutton(frame, text="Remember Me", variable=remember_me_var, font=("Arial", 12), bg="#f7e7ce")
-    remember_me_checkbox.pack(pady=5)
-
     forgot_password_btn = tk.Button(frame, text="Forgot Password?", font=("Arial", 12, "underline"), bg="#f7e7ce", fg="#172255", bd=0, command=forgot_password)
     forgot_password_btn.pack(pady=(0, 10))
     forgot_password_btn.bind("<Enter>", lambda e: on_enter(e, forgot_password_btn, "#cce7b0"))
