@@ -4,8 +4,67 @@ from tkinter import PhotoImage
 from PIL import Image, ImageTk
 import random
 import time
+import sqlite3
+from datetime import datetime
 
-def math_hard():
+current_username=None
+game_name="Math Hard"
+high_score=0
+database_path="database.db"
+
+def connect_db():
+    return sqlite3.connect(database_path)
+
+def get_progress(username, game_name):
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''SELECT best_level FROM progress_tracking WHERE username=? AND game_name=?''',
+        (username, game_name)
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+def set_progress(username, game_name, level):
+    conn = connect_db()
+    cursor = conn.cursor()
+    now = datetime.now()
+    
+    cursor.execute(
+        'SELECT best_level FROM progress_tracking WHERE username=? AND game_name=?',
+        (username, game_name)
+    )
+    existing = cursor.fetchone()
+    if existing:
+        best_level = existing[0]
+        if level > best_level:
+            cursor.execute(
+                '''
+                UPDATE progress_tracking
+                SET best_level=?, last_played=?
+                WHERE username=? AND game_name=?
+                ''',
+                (level, now, username, game_name)
+            )
+    else:
+        cursor.execute(
+            '''
+            INSERT INTO progress_tracking (username, game_name, best_level, last_played)
+            VALUES (?, ?, ?, ?)
+            ''',
+            (username, game_name, level, now)
+        )
+    conn.commit()
+    conn.close()
+
+
+def math_hard(current_username_param):
+    global current_username, high_score
+    current_username=current_username_param
+
+    high_score=get_progress(current_username, game_name)
+    
     question_number=1
     first_number, second_number, operation, correct_answer, symbol = 0, 0, 0, 0, " "
     answers=[]
@@ -102,6 +161,10 @@ def math_hard():
     #if answer is not correct  
     def game_over():
         nonlocal achievement_5levels, achievement_10levels, achievement_15levels
+
+        if question_number-1 > high_score:
+            high_score=question_number-1
+            set_progress(current_username, game_name, high_score)
 
         main_frame.pack_forget()
 
