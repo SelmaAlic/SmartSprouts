@@ -5,13 +5,10 @@ import sqlite3
 import io
 import urllib.request
 from datetime import datetime
-import database  # your existing database helper module
+import database
 
 def show_inventory(current_username):
-    """
-    Display the sticker collection UI for the given username.
-    """
-    # Load sticker definitions
+
     games_config = {
         "sequence_game": {
             "name": "Sequence Game",
@@ -39,37 +36,34 @@ def show_inventory(current_username):
         }
     }
 
-    # Create top-level window
     root = tk.Toplevel()
     root.title("Smart Sprouts - Sticker Collection")
-    # Maximize window without hiding title bar
-    root.state('zoomed')  # Windows; on other platforms might use root.attributes('-zoomed', True)
+    
+    root.state('zoomed')
     root.configure(bg='#88b04b')
 
-    # Header
     header = tk.Frame(root, bg='#f7e7ce', padx=20, pady=10)
     header.pack(fill='x')
     tk.Label(header, text="🌟 Sticker Collection 🌟", font=('Arial', 22, 'bold'), bg='#f7e7ce', fg='#172255').pack()
     tk.Label(header, text=f"Player: {current_username}", font=('Arial', 12), bg='#f7e7ce', fg='#172255').pack()
 
-    # Game selector
     selector_frame = tk.Frame(root, bg='#f7e7ce', pady=10)
     selector_frame.pack()
     game_var = tk.StringVar(value="sequence_game")
     def reload_stickers():
-        # Clear existing
+        
         for w in stickers_frame.winfo_children(): w.destroy()
         game_key = game_var.get()
         cfg = games_config[game_key]
-        # Fetch progress
+        
         prog = database.get_progress(current_username, game_key)
         level = prog['best_level'] if prog and 'best_level' in prog else 0
-        # Unlock additional stickers in DB
+        
         if level >= 2: database.unlock_sticker(current_username, f"{game_key}_level_1")
         if level >= 3: database.unlock_sticker(current_username, f"{game_key}_level_2")
         if level >= 4: database.unlock_sticker(current_username, f"{game_key}_level_3")
         unlocked = set(database.get_unlocked_stickers(current_username))
-        # Display
+        
         title = tk.Label(stickers_frame, text=f"{cfg['name']} Stickers", font=('Arial', 18, 'bold'), bg='#f7e7ce', fg='#172255')
         title.grid(row=0, column=0, columnspan=3, pady=(0,15))
         for idx in range(1,4):

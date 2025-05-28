@@ -1,7 +1,7 @@
 import pygame
 import os
 import sys
-import ctypes  # For window focus on Windows
+import ctypes
 
 from math_game_easy import math_easy
 from math_game_hard import math_hard
@@ -9,6 +9,7 @@ from sequence_game import sequence_easy
 from SequenceGameHard import sequence_hard
 from sorting_game import sorting_easy
 from sorting_numbers_game import sorting_hard
+
 
 def game_picker(difficulty, current_username):
     def on_math():

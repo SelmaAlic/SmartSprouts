@@ -1,10 +1,11 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import os
-from game_picker import game_picker
 import pygame
 import sys
-import ctypes  # For window focus on Windows
+import ctypes 
+
+from game_picker import game_picker
 
 
 def age_picker(current_username, on_select=None):
@@ -126,12 +127,12 @@ def age_picker(current_username, on_select=None):
     if on_select and selected:
         pygame.init()
         pygame.event.clear()
-        # Force window to foreground (Windows)
+        
         if sys.platform == 'win32':
             try:
                 hwnd = pygame.display.get_wm_info()['window']
                 ctypes.windll.user32.SetForegroundWindow(hwnd)
                 ctypes.windll.user32.SetActiveWindow(hwnd)
             except KeyError:
-                pass  # Handle the case where 'window' key is not available
+                pass
         on_select(selected, current_username)
