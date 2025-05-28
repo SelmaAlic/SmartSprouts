@@ -12,6 +12,8 @@ from auth import authenticate
 from encryption import to_encrypt
 from age_picker import age_picker
 
+current_username=" "
+
 def setup_database():
     conn = sqlite3.connect('database.db')
     cursor = conn.cursor()
@@ -55,7 +57,7 @@ def on_leave(e, btn, original_color):
 
 #Wrapping login GUI in a callable function
 def show_login_window(parent=None): 
-    global username_entry, password_entry, root 
+    global username_entry, password_entry, root, current_username 
 
     if parent:
         parent.destroy()
@@ -118,8 +120,11 @@ def show_login_window(parent=None):
     forgot_password_btn.bind("<Leave>", lambda e: on_leave(e, forgot_password_btn, "#f7e7ce"))
 
     root.mainloop()
+    return current_username
+
 
 def login():
+    global current_username
     username = username_entry.get()
     password = password_entry.get()
 
@@ -129,7 +134,7 @@ def login():
 
     if authenticate(username, password):
         messagebox.showinfo("Login Successful", f"Welcome, {username}!")
-        #here was code for calling age_picker
+        current_username=username
         root.destroy()
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")

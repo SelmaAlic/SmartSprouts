@@ -1,8 +1,11 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import os
+
 from login import show_login_window
 from age_picker import age_picker
+
+current_username= ""
 
 class HomeScreen:
     def __init__(self, root):
@@ -73,7 +76,7 @@ class HomeScreen:
 
     def on_login(self):
         #show_login_window(self.root) wont be login enymore but age picker
-        age_picker()
+        age_picker(current_username)
         pass
 
     def on_sticker(self):
@@ -81,7 +84,8 @@ class HomeScreen:
         pass
 
 if __name__ == "__main__":
-    show_login_window()
+    #nonlocal current_username
+    current_username=show_login_window()
     root = tk.Tk()
     app = HomeScreen(root)
     root.mainloop()

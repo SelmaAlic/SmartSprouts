@@ -6,7 +6,8 @@ import pygame
 import sys
 import ctypes  # For window focus on Windows
 
-def age_picker(on_select=None):
+
+def age_picker(current_username, on_select=None):
     if on_select is None:
         on_select = game_picker
 
@@ -123,7 +124,6 @@ def age_picker(on_select=None):
 
     pygame.quit()
     if on_select and selected:
-        # Reinitialize Pygame for the next window
         pygame.init()
         pygame.event.clear()
         # Force window to foreground (Windows)
@@ -134,4 +134,4 @@ def age_picker(on_select=None):
                 ctypes.windll.user32.SetActiveWindow(hwnd)
             except KeyError:
                 pass  # Handle the case where 'window' key is not available
-        on_select(selected)
+        on_select(selected, current_username)

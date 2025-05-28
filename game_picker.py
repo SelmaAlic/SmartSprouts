@@ -5,13 +5,12 @@ import ctypes  # For window focus on Windows
 
 from math_game_easy import math_easy
 from math_game_hard import math_hard
+from sequence_game import sequence_easy
+from SequenceGameHard import sequence_hard
+from sorting_game import sorting_easy
+from sorting_numbers_game import sorting_hard
 
-def game_picker(difficulty):
-    """
-    Pygame-based Game Picker.
-    difficulty: "easy" or "hard"
-    """
-    # Callbacks
+def game_picker(difficulty, current_username):
     def on_math():
         if difficulty == "easy":
             math_easy()
@@ -20,15 +19,15 @@ def game_picker(difficulty):
 
     def on_sorting():
         if difficulty == "easy":
-            print("sorting_easy")
+            sorting_easy(current_username)
         else:
-            print("sorting_hard")
+            sorting_hard(current_username)
 
     def on_sequence():
         if difficulty == "easy":
-            print("sequence_easy")
+            sequence_easy(current_username)
         else:
-            print("sequence_hard")
+            sequence_hard(current_username)
 
     def on_memory():
         if difficulty == "easy":
