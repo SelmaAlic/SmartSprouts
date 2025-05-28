@@ -68,8 +68,8 @@ def update_progress(username, game_name, level, time_sec, mistakes):
     conn.close()
 
 
-def sorting_hard():
-    username = "player1"
+def sorting_hard(current_username):
+    username = current_username
     create_progress_table()
     pygame.init()
     WIDTH, HEIGHT = 800, 600
@@ -230,6 +230,3 @@ def sorting_hard():
     update_progress(username, game_name, level, elapsed, mistakes)
     pygame.quit()
     sys.exit()
-
-if __name__ == '__main__':
-    sorting_hard()

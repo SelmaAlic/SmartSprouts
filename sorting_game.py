@@ -74,7 +74,7 @@ def update_progress(username, game_name, level, time_sec, mistakes):
     conn.close()
 
 
-def sorting_easy():
+def sorting_easy(current_username):
     # Colors and constants
     NAVY = (23, 34, 85)
     FRAME_GREEN = (136, 176, 75)
@@ -128,7 +128,7 @@ def sorting_easy():
     big_font = pygame.font.SysFont(None, 72)
 
     # Progress tracking
-    username = 'player1'
+    username = current_username
     game_name = 'color_sort_easy'
     progress = get_progress(username, game_name)
     if progress:
@@ -274,7 +274,3 @@ def sorting_easy():
     pygame.time.wait(4000)
     pygame.quit()
     sys.exit()
-
-
-if __name__ == '__main__':
-    sorting_easy()

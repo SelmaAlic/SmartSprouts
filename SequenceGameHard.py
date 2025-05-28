@@ -1,324 +1,193 @@
 import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
 import random
 import os
-from PIL import Image, ImageTk
 import sqlite3
+from datetime import datetime
 
-def sequence_hard(root):
-    class SequenceGameHard:
-        def __init__(self, root):
-            self.root = root
-            self.root.title("Sequence Game - Age 6–8")
-            self.root.configure(bg="#88B04B")
-            self.root.state("zoomed")
+# Constants and state
+DB_PATH = "database.db"
+current_username = None
+GAME_NAME = "SequenceGameHard"
+MAX_ROUNDS = 10
+FLASH_SPEED = 650
+COLORS = ["red", "green", "blue", "yellow", "purple", "orange"]
 
-            icon_path = "logo2.ico"
-            if os.path.exists(icon_path):
-                self.root.iconbitmap(icon_path)
+# State variables
+sequence = []
+user_sequence = []
+current_round = 1
+mistakes = 0
+sticker_images = {}
+unlocked_stickers = set()
+start_time = None
 
-            self.create_progress_table()
-            self.create_rewards_table()
+# UI globals
+tk_root = None
+message_label = None
+frame_buttons = None
+start_button = None
+label_best = None
+frame_stickers = None
+color_buttons = {}
 
-            self.sequence = []
-            self.user_sequence = []
-            self.round = 1
-            self.max_rounds = 10
-            self.buttons = {}
-            self.colors = ["red", "green", "blue", "yellow", "purple", "orange"]
-            self.flash_speed = 650
+# Database helpers
+def connect_db():
+    return sqlite3.connect(DB_PATH)
 
-            self.sticker_images = {}
-            self.unlocked_stickers = self.load_unlocked_stickers()
-            self.load_sticker_images()
+def create_progress_table():
+    conn = connect_db(); c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS progress (
+        username TEXT NOT NULL,
+        highest_round INTEGER NOT NULL,
+        PRIMARY KEY(username)
+    )''')
+    conn.commit(); conn.close()
 
-            self.build_ui()
-            self.show_start_button()
+def create_rewards_table():
+    conn = connect_db(); c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS rewards (
+        username TEXT NOT NULL,
+        name TEXT NOT NULL,
+        unlocked INTEGER DEFAULT 0,
+        PRIMARY KEY(username, name)
+    )''')
+    for name in ["you_did_it","wow","pro"]:
+        c.execute("INSERT OR IGNORE INTO rewards (username,name,unlocked) VALUES (?,?,0)", (current_username, name))
+    conn.commit(); conn.close()
 
-        def create_progress_table(self):
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS progress (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                highest_round INTEGER NOT NULL)''')
-            c.execute("SELECT COUNT(*) FROM progress")
-            if c.fetchone()[0] == 0:
-                c.execute("INSERT INTO progress (highest_round) VALUES (0)")
-            conn.commit()
-            conn.close()
+def get_highest_round():
+    conn = connect_db(); c = conn.cursor()
+    c.execute("SELECT highest_round FROM progress WHERE username=?", (current_username,))
+    row = c.fetchone(); conn.close()
+    return row[0] if row else 0
 
-        def create_rewards_table(self):
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
+def set_highest_round(rnd):
+    conn = connect_db(); c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO progress (username,highest_round) VALUES (?,?)", (current_username, rnd))
+    conn.commit(); conn.close()
 
-            try:
-                c.execute("SELECT name FROM rewards LIMIT 1")
-            except sqlite3.OperationalError:
-                c.execute("DROP TABLE IF EXISTS rewards")
-                c.execute('''CREATE TABLE IF NOT EXISTS rewards (
-                                name TEXT PRIMARY KEY,
-                                unlocked INTEGER DEFAULT 0
-                            )''')
+def load_unlocked_stickers():
+    conn = connect_db(); c = conn.cursor()
+    c.execute("SELECT name FROM rewards WHERE username=? AND unlocked=1", (current_username,))
+    rows = c.fetchall(); conn.close()
+    return {r[0] for r in rows}
 
-            stickers = ["you_did_it", "wow", "pro"]
-            for name in stickers:
-                c.execute("INSERT OR IGNORE INTO rewards (name, unlocked) VALUES (?, 0)", (name,))
+def unlock_sticker_db(name):
+    conn = connect_db(); c = conn.cursor()
+    c.execute("UPDATE rewards SET unlocked=1 WHERE username=? AND name=?", (current_username, name))
+    conn.commit(); conn.close()
 
-            conn.commit()
-            conn.close()
+# UI setup
+def load_sticker_images():
+    global sticker_images
+    for name in ["you_did_it","wow","pro"]:
+        path = os.path.join("assets", f"{name}.png")
+        if os.path.exists(path):
+            img = Image.open(path).resize((100,100), Image.Resampling.LANCZOS)
+            sticker_images[name] = ImageTk.PhotoImage(img)
+        else:
+            sticker_images[name] = None
 
-        def load_unlocked_stickers(self):
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            c.execute("SELECT name FROM rewards WHERE unlocked = 1")
-            rows = c.fetchall()
-            conn.close()
-            return {row[0] for row in rows}
+def build_ui():
+    global tk_root, message_label, frame_buttons, start_button, label_best, frame_stickers, color_buttons
+    tk_root.title("Sequence Game - Age 6–8")
+    tk_root.configure(bg="#88B04B")
+    tk_root.state("zoomed")
 
-        def unlock_sticker(self, name):
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            c.execute("UPDATE rewards SET unlocked = 1 WHERE name = ?", (name,))
-            conn.commit()
-            conn.close()
-            self.unlocked_stickers.add(name)
+    # initialize DB
+    create_progress_table(); create_rewards_table()
+    unlocked = load_unlocked_stickers()
+    unlocked_stickers.clear(); unlocked_stickers.update(unlocked)
 
-        def get_highest_round(self):
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            c.execute("SELECT highest_round FROM progress WHERE id=1")
-            result = c.fetchone()
-            conn.close()
-            return result[0] if result else 0
+    frm = tk.Frame(tk_root, bg="#f7e7ce", padx=20, pady=20)
+    frm.pack(expand=True, fill="both")
 
-        def set_highest_round(self, round_number):
-            conn = sqlite3.connect("database.db")
-            c = conn.cursor()
-            c.execute("UPDATE progress SET highest_round = ? WHERE id=1", (round_number,))
-            conn.commit()
-            conn.close()
-            self.best_score_label.config(text=f"Best Round: {round_number}")
+    tk.Label(frm, text="Remember the Sequence!", font=("Arial",24,"bold"), bg="#f7e7ce").pack(pady=10)
+    label_best = tk.Label(frm, text=f"Best Round: {get_highest_round()}", font=("Arial",16), bg="#f7e7ce")
+    label_best.pack(pady=5)
 
-        def load_sticker_images(self):
-            for name in ["you_did_it", "wow", "pro"]:
-                for version in ["", " siva"]:
-                    file = f"{name}{version}.png"
-                    if os.path.exists(file):
-                        img = Image.open(file)
-                        self.sticker_images[file] = ImageTk.PhotoImage(img)
-                    else:
-                        self.sticker_images[file] = None
+    message_label = tk.Label(frm, text="", font=("Arial",18), bg="#f7e7ce")
+    message_label.pack(pady=10)
 
-        def build_ui(self):
-            self.okvir = tk.Frame(self.root, bg="#88B04B", padx=8, pady=8)
-            self.okvir.pack(expand=True, fill="both", padx=20, pady=20)
+    frame_buttons = tk.Frame(frm, bg="#f7e7ce"); frame_buttons.pack(pady=10)
+    color_buttons = {}
+    for i,color in enumerate(COLORS):
+        btn = tk.Button(frame_buttons, bg=color, width=8, height=4, command=lambda c=color: user_input(c))
+        btn.grid(row=i//3, column=i%3, padx=15, pady=10)
+        color_buttons[color] = btn
 
-            self.frame = tk.Frame(self.okvir, bg="#f7e7ce")
-            self.frame.pack(expand=True, fill="both")
+    frame_stickers = tk.Frame(frm, bg="#f7e7ce"); frame_stickers.pack(pady=10)
 
-            self.title_label = tk.Label(self.frame, text="Remember the Sequence!", font=("Comic Sans MS", 28, "bold"),
-                                        bg="#f7e7ce", fg="#172255")
-            self.title_label.pack(pady=20)
+    start_button = tk.Button(frm, text="Start Game", font=("Arial",18), bg="#88B04B", command=start_game)
+    start_button.pack(pady=20)
 
-            self.best_score_label = tk.Label(self.frame, text=f"Best Round: {self.get_highest_round()}",
-                                             font=("Comic Sans MS", 16), bg="#f7e7ce", fg="#172255")
-            self.best_score_label.pack(pady=10)
+# Game logic
+def start_game():
+    global sequence, user_sequence, mistakes, current_round, start_time
+    sequence.clear(); user_sequence.clear(); mistakes=0; current_round=1
+    clear_stickers(); set_highest_round(get_highest_round()); update_best_label()
+    start_time = datetime.now(); next_round()
 
-            self.button_frame = tk.Frame(self.frame, bg="#f7e7ce")
-            self.button_frame.pack(pady=20)
+def next_round():
+    global current_round
+    if current_round>MAX_ROUNDS:
+        message_label.config(text="Great Job! Finished all rounds!")
+        return
+    message_label.config(text=f"Round {current_round}")
+    user_sequence.clear(); sequence.append(random.choice(COLORS))
+    tk_root.after(1000, play_sequence)
 
-            color_map = {
-                "red": "#FF6F61",
-                "green": "#88B04B",
-                "blue": "#92A8D1",
-                "yellow": "#F9C74F",
-                "purple": "#9B59B6",
-                "orange": "#F39C12"
-            }
+def play_sequence():
+    for idx,color in enumerate(sequence): tk_root.after(idx*FLASH_SPEED, lambda c=color: flash_button(c))
 
-            row = col = 0
-            for i, color in enumerate(self.colors):
-                btn = tk.Button(self.button_frame, bg=color_map[color], activebackground="white",
-                                width=10, height=4, relief="raised", bd=3, command=lambda c=color: self.user_input(c))
-                btn.grid(row=row, column=col, padx=15, pady=10)
-                self.buttons[color] = btn
-                col += 1
-                if (i + 1) % 3 == 0:
-                    row += 1
-                    col = 0
+def flash_button(color):
+    btn=color_buttons[color]; orig=btn.cget("bg")
+    btn.config(bg="white"); tk_root.after(400, lambda: btn.config(bg=orig))
 
-            self.message_label = tk.Label(self.frame, text="", font=("Comic Sans MS", 22),
-                                          bg="#f7e7ce", fg="#172255")
-            self.message_label.pack(pady=20)
+def user_input(color):
+    global mistakes, current_round
+    flash_button(color)
+    pos=len(user_sequence); user_sequence.append(color)
+    if user_sequence[pos]!=sequence[pos]:
+        mistakes+=1; message_label.config(text="Wrong!"); prompt_restart(); return
+    if len(user_sequence)==len(sequence):
+        if current_round>get_highest_round(): set_highest_round(current_round); update_best_label()
+        check_unlock(current_round)
 
-            self.inventory_btn = tk.Button(self.frame, text="Inventory", font=("Comic Sans MS", 14, "bold"),
-                                           bg="#88B04B", fg="white", command=self.show_inventory)
-            self.inventory_btn.pack(pady=10)
 
-            self.sticker_frame = tk.Frame(self.frame, bg="#f7e7ce")
-            self.sticker_frame.pack(pady=10)
+def check_unlock(rnd):
+    if rnd==4 and "you_did_it" not in unlocked_stickers: unlock_and_popup("you_did_it")
+    elif rnd==7 and "wow" not in unlocked_stickers: unlock_and_popup("wow")
+    elif rnd==10 and "pro" not in unlocked_stickers: unlock_and_popup("pro")
+    else: increment_round()
 
-            self.root.bind("<Escape>", lambda e: self.root.destroy())
+def unlock_and_popup(name):
+    unlock_sticker_db(name); unlocked_stickers.add(name)
+    popup=tk.Toplevel(tk_root); tk.Label(popup, text=f"Unlocked {name}").pack()
+    popup.after(1000,popup.destroy); increment_round()
 
-        def show_start_button(self):
-            self.start_button = tk.Button(self.frame, text="Start Game", font=("Comic Sans MS", 18, "bold"),
-                                          bg="#88B04B", fg="white", width=14, command=self.start_game)
-            self.start_button.pack(pady=20)
+def increment_round():
+    global current_round; current_round+=1; tk_root.after(500,next_round)
 
-        def start_game(self):
-            self.start_button.destroy()
-            self.sequence.clear()
-            self.user_sequence.clear()
-            self.round = 1
-            self.clear_stickers_display()
-            self.best_score_label.config(text=f"Best Round: {self.get_highest_round()}")
-            self.next_round()
+def clear_stickers():
+    for w in frame_stickers.winfo_children(): w.destroy()
 
-        def next_round(self):
-            if self.round > self.max_rounds:
-                self.message_label.config(text="Great Job! You finished all levels!")
-                return
-            self.message_label.config(text=f"Round {self.round}")
-            self.user_sequence.clear()
-            self.sequence.append(random.choice(self.colors))
-            self.root.after(1000, self.play_sequence)
+def update_best_label():
+    label_best.config(text=f"Best Round: {get_highest_round()}")
 
-        def play_sequence(self):
-            for i, color in enumerate(self.sequence):
-                self.root.after(i * self.flash_speed, lambda c=color: self.flash_button(c))
-            self.root.after(len(self.sequence) * self.flash_speed, lambda: self.message_label.config(text="Your turn now!"))
+def prompt_restart():
+    if messagebox.askyesno("Game Over","Restart at round 1?"):
+        start_game()
+    else:
+        tk_root.destroy()
 
-        def flash_button(self, color):
-            btn = self.buttons[color]
-            original = btn["bg"]
-            btn.config(bg="white")
-            self.root.after(400, lambda: btn.config(bg=original))
-
-        def user_input(self, color):
-            self.user_sequence.append(color)
-            if self.user_sequence == self.sequence[:len(self.user_sequence)]:
-                if len(self.user_sequence) == len(self.sequence):
-                    self.check_unlock_sticker(self.round)
-            else:
-                self.show_restart_screen()
-
-        def check_unlock_sticker(self, round_number):
-            sticker = None
-            if round_number == 4 and "you_did_it" not in self.unlocked_stickers:
-                sticker = "you_did_it"
-            elif round_number == 7 and "wow" not in self.unlocked_stickers:
-                sticker = "wow"
-            elif round_number == 10 and "pro" not in self.unlocked_stickers:
-                sticker = "pro"
-
-            if round_number > self.get_highest_round():
-                self.set_highest_round(round_number)
-
-            if sticker:
-                self.unlock_sticker(sticker)
-                self.show_sticker_popup(sticker)
-            else:
-                self.round += 1
-                self.root.after(1000, self.next_round)
-
-        def show_sticker_popup(self, sticker_name):
-            popup = tk.Toplevel(self.root)
-            popup.title("You earned a sticker!")
-            popup.geometry("300x300")
-            popup.configure(bg="#f7e7ce")
-            popup.transient(self.root)
-            popup.grab_set()
-
-            icon_path = "logo2.ico"
-            if os.path.exists(icon_path):
-                popup.iconbitmap(icon_path)
-
-            img = self.sticker_images.get(f"{sticker_name}.png")
-            if img:
-                lbl = tk.Label(popup, image=img, bg="#f7e7ce")
-                lbl.image = img
-                lbl.pack(pady=20)
-
-            btn = tk.Button(popup, text="Collect Sticker", font=("Comic Sans MS", 14, "bold"),
-                            bg="#88B04B", fg="white", command=lambda: self.collect_sticker(popup))
-            btn.pack(pady=20)
-
-        def collect_sticker(self, popup):
-            popup.destroy()
-            self.display_stickers()
-            self.round += 1
-            self.root.after(500, self.next_round)
-
-        def display_stickers(self):
-            self.clear_stickers_display()
-            for name in ["you_did_it", "wow", "pro"]:
-                file = f"{name}.png" if name in self.unlocked_stickers else f"{name} siva.png"
-                img = self.sticker_images.get(file)
-                if img:
-                    lbl = tk.Label(self.sticker_frame, image=img, bg="#f7e7ce")
-                    lbl.image = img
-                    lbl.pack(side="left", padx=5)
-
-        def clear_stickers_display(self):
-            for widget in self.sticker_frame.winfo_children():
-                widget.destroy()
-
-        def show_inventory(self):
-            inv = tk.Toplevel(self.root)
-            inv.title("Sticker Inventory")
-            inv.geometry("350x150")
-            inv.configure(bg="#f7e7ce")
-            inv.transient(self.root)
-            inv.grab_set()
-
-            icon_path = "logo2.ico"
-            if os.path.exists(icon_path):
-                inv.iconbitmap(icon_path)
-
-            for name in ["you_did_it", "wow", "pro"]:
-                file = f"{name}.png" if name in self.unlocked_stickers else f"{name} siva.png"
-                img = self.sticker_images.get(file)
-                if img:
-                    lbl = tk.Label(inv, image=img, bg="#f7e7ce")
-                    lbl.image = img
-                    lbl.pack(side="left", padx=10, pady=10)
-
-        def show_restart_screen(self):
-            self.message_label.config(text="Incorrect sequence! Game over.")
-            for btn in self.buttons.values():
-                btn.config(state="disabled")
-            popup = tk.Toplevel(self.root)
-            popup.title("Game Over")
-            popup.geometry("300x200")
-            popup.configure(bg="#f7e7ce")
-            popup.transient(self.root)
-            popup.grab_set()
-
-            icon_path = "logo2.ico"
-            if os.path.exists(icon_path):
-                popup.iconbitmap(icon_path)
-
-            msg = tk.Label(popup, text="Oops! You made a mistake.\nDo you want to restart?", font=("Comic Sans MS", 14),
-                           bg="#f7e7ce", fg="#172255")
-            msg.pack(pady=20)
-
-            btn_frame = tk.Frame(popup, bg="#f7e7ce")
-            btn_frame.pack(pady=10)
-
-            restart_btn = tk.Button(btn_frame, text="Restart", bg="#88B04B", fg="white",
-                                    command=lambda: [popup.destroy(), self.restart_game()])
-            restart_btn.pack(side="left", padx=10)
-
-            exit_btn = tk.Button(btn_frame, text="Exit", bg="#FF6F61", fg="white", command=self.root.destroy)
-            exit_btn.pack(side="right", padx=10)
-
-        def restart_game(self):
-            for btn in self.buttons.values():
-                btn.config(state="normal")
-            self.start_game()
-
-    game = SequenceGameHard(root)
-    return game
-if __name__ == "__main__":
-    root = tk.Tk()
-    game = sequence_hard(root)
-    root.mainloop()
+# Entry point
+def sequence_hard(username_param):
+    global tk_root, current_username
+    current_username = username_param  # set global for module
+    tk_root = tk.Toplevel()
+    tk_root.lift(); tk_root.attributes('-topmost',True); tk_root.after(10, lambda: tk_root.attributes('-topmost',False))
+    load_sticker_images(); build_ui()
+    tk_root.mainloop()
