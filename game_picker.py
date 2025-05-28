@@ -10,7 +10,6 @@ from SequenceGameHard import sequence_hard
 from sorting_game import sorting_easy
 from sorting_numbers_game import sorting_hard
 
-
 def game_picker(difficulty, current_username):
     def on_math():
         if difficulty == "easy":
@@ -32,9 +31,11 @@ def game_picker(difficulty, current_username):
 
     def on_memory():
         if difficulty == "easy":
-            print("memory_easy")
+            print("-")
+            #print("memory_easy")
         else:
-            print("memory_hard")
+            print("-")
+            #print("memory_hard")
 
     def on_cloud_sync():
         print("cloud sync")
@@ -45,13 +46,11 @@ def game_picker(difficulty, current_username):
     screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
     pygame.display.set_caption("Smart Sprouts - Game Picker")
 
-    # ▶ ADDED: force window to foreground (Windows)
     if sys.platform == 'win32':
         hwnd = pygame.display.get_wm_info()['window']
         ctypes.windll.user32.SetForegroundWindow(hwnd)
         ctypes.windll.user32.SetActiveWindow(hwnd)
 
-    # ▶ ADDED: clear any focus-stealing events
     pygame.event.clear()
 
     # Colors & fonts
@@ -71,7 +70,7 @@ def game_picker(difficulty, current_username):
         cloud_text = LABEL_FONT.render("Cloud Sync", True, TEXT_COLOR)
 
     # Logo
-    logo_path = os.path.join("assets", "logo.png")
+    logo_path = os.path.join("assets", "logoSelma.png")
     logo_img = pygame.image.load(logo_path).convert_alpha()
     logo_img = pygame.transform.smoothscale(logo_img, (480, 280))
 
@@ -139,5 +138,3 @@ def game_picker(difficulty, current_username):
 
     pygame.quit()
     sys.exit()
-
-# working game picker

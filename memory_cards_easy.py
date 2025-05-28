@@ -118,7 +118,7 @@ def memory_cards_easy(username):
 
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-    logo_original = pygame.image.load(os.path.join(image_folder, 'logo.png')).convert_alpha()
+    logo_original = pygame.image.load(os.path.join(image_folder, 'logoSelma.png')).convert_alpha()
     logo_icon = pygame.transform.smoothscale(logo_original, (32, 32))
     pygame.display.set_caption("Memory Card Game")
     pygame.display.set_icon(logo_icon)

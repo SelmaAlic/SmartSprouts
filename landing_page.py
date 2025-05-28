@@ -6,6 +6,7 @@ from login import show_login_window
 from age_picker import age_picker
 from inventory import show_inventory
 
+
 current_username= ""
 
 class HomeScreen:
