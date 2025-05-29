@@ -1,18 +1,13 @@
-import tkinter as tk
-from PIL import Image, ImageTk
-import os
 import pygame
+import os
 import sys
-import ctypes 
+import ctypes
 
 from game_picker import game_picker
-
 
 def age_picker(current_username, on_select=None):
     if on_select is None:
         on_select = game_picker
-
-    pygame.init()
 
     info = pygame.display.Info()
     screen_width, screen_height = info.current_w, info.current_h - 60
@@ -123,11 +118,7 @@ def age_picker(current_username, on_select=None):
                         selected = btn_info[i]["difficulty"]
                         running = False
 
-    pygame.quit()
     if on_select and selected:
-        pygame.init()
-        pygame.event.clear()
-        
         if sys.platform == 'win32':
             try:
                 hwnd = pygame.display.get_wm_info()['window']
