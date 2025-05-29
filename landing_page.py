@@ -5,13 +5,12 @@ import os
 from login import show_login_window
 from age_picker import age_picker
 from inventory import show_inventory
+from progress_tracking_page import progress_tracker
 
-# convert hex colors to RGB tuples
 BG_OUTER= (0x2C, 0x81, 0x02)
 BG_INNER= (0xF7, 0xE7, 0xCE)
 TEXT_COLOR= (0x17, 0x22, 0x55)
 
-# button configuration
 BTN_SIZE= (150, 150)
 BTN_GAP= 40
 LOGO_SIZE= (630, 400)
@@ -41,14 +40,12 @@ def landing_page_pygame():
         except Exception:
             pass
 
-    # load your logo once
     logo_surf = pygame.image.load(os.path.join("assets", "logo.png")).convert_alpha()
     logo_surf = pygame.transform.smoothscale(logo_surf, LOGO_SIZE)
 
-    # load button images
     btn_files = [ "progress.png", "login.png", "stickers.png" ]
     btn_labels= [ "Progress Tracking", "Play", "Sticker Collection" ]
-    btn_funcs = [ lambda: None,
+    btn_funcs = [ lambda: progress_tracker(current_username),
                   lambda: age_picker(current_username),
                   lambda: show_inventory(current_username) ]
 
