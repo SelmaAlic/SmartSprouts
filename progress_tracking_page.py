@@ -111,8 +111,3 @@ def progress_tracker(username, master=None):
             tk.Label(frame, text=f"Last Played: {p['last_played']}", font=info_font, bg="#f7e7ce", anchor="w").pack(anchor="w")
 
     root.mainloop()
-
-
-if __name__ == "__main__":
-    progress_tracker("testuser")
-
