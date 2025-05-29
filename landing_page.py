@@ -1,91 +1,117 @@
-import tkinter as tk
-from PIL import Image, ImageTk
+import pygame
+import sys
 import os
 
 from login import show_login_window
 from age_picker import age_picker
 from inventory import show_inventory
 
+# convert hex colors to RGB tuples
+BG_OUTER= (0x2C, 0x81, 0x02)
+BG_INNER= (0xF7, 0xE7, 0xCE)
+TEXT_COLOR= (0x17, 0x22, 0x55)
 
-current_username= ""
+# button configuration
+BTN_SIZE= (150, 150)
+BTN_GAP= 40
+LOGO_SIZE= (630, 400)
+PADDING_TOP= 30
 
-class HomeScreen:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Smart Sprouts - Home")
-        self.root.configure(bg="#2C8102")
-        self.root.resizable(True, True)
-        self.root.iconbitmap(os.path.join("assets", "logo2.ico"))
-        self.root.state("zoomed")
-        self.build_ui()
+def landing_page_pygame():
+    #Opens login window
+    current_username = show_login_window()
+    if not current_username:
+        sys.exit(0)
 
-    def build_ui(self):
-        self.frame = tk.Frame(self.root, bg="#2C8102", padx=6, pady=6)
-        self.frame.pack(expand=True, fill="both", padx=5, pady=5)
+    pygame.init()
 
-        self.inner_frame = tk.Frame(self.frame, bg="#f7e7ce")
-        self.inner_frame.pack(expand=True, fill="both", padx=10, pady=10)
+    info = pygame.display.Info()
+    screen_w, screen_h = info.current_w, info.current_h
+    # left room for white bar at the top
+    win_h = screen_h-40
 
-        logo_path = os.path.join("assets", "logo.png")
-        logo_img = Image.open(logo_path).resize((630, 400), Image.LANCZOS)
-        logo_photo = ImageTk.PhotoImage(logo_img)
-        logo_label = tk.Label(self.inner_frame, image=logo_photo, bg="#f7e7ce")
-        logo_label.image = logo_photo
-        logo_label.pack(pady=(30, 30))
+    screen = pygame.display.set_mode((screen_w, win_h), pygame.RESIZABLE)
+    pygame.display.set_caption("Smart Sprouts - Home")
 
-    
-        btn_data = [
-            ("progress.png", "Progress Tracking", self.on_progress),
-            ("login.png", "Play", self.on_login),
-            ("stickers.png", "Sticker Collection", self.on_sticker),
-        ]
+    logo_path = os.path.join("assets", "logo2.ico")
+    if os.path.exists(logo_path):
+        try:
+            ico = pygame.image.load(logo_path)
+            pygame.display.set_icon(ico)
+        except Exception:
+            pass
 
-        btn_imgs = []
-        for file, _, _ in btn_data:
-            img_path = os.path.join("assets", file)
-            img = Image.open(img_path).resize((150, 150), Image.LANCZOS)
-            btn_imgs.append(ImageTk.PhotoImage(img))
+    # load your logo once
+    logo_surf = pygame.image.load(os.path.join("assets", "logo.png")).convert_alpha()
+    logo_surf = pygame.transform.smoothscale(logo_surf, LOGO_SIZE)
 
-        btn_frame = tk.Frame(self.inner_frame, bg="#f7e7ce")
-        btn_frame.pack(pady=(10, 40))
+    # load button images
+    btn_files = [ "progress.png", "login.png", "stickers.png" ]
+    btn_labels= [ "Progress Tracking", "Play", "Sticker Collection" ]
+    btn_funcs = [ lambda: None,
+                  lambda: age_picker(current_username),
+                  lambda: show_inventory(current_username) ]
 
-        for i, (img, (file, label, cmd)) in enumerate(zip(btn_imgs, btn_data)):
-            btn = tk.Button(
-                btn_frame,
-                image=img,
-                bd=0,
-                bg="#f7e7ce",
-                activebackground="#d6c7b0",
-                command=cmd,
-                cursor="hand2"
-            )
-            btn.image = img  
-            btn.grid(row=0, column=i, padx=40, pady=(0, 5))
-            
-            lbl = tk.Label(
-                btn_frame,
-                text=label,
-                font=("Arial", 13, "bold"),
-                bg="#f7e7ce",
-                fg="#172255"
-            )
-            lbl.grid(row=1, column=i, pady=(0, 10))
+    btn_surfs = []
+    for fn in btn_files:
+        path = os.path.join("assets", fn)
+        img  = pygame.image.load(path).convert_alpha()
+        img  = pygame.transform.smoothscale(img, BTN_SIZE)
+        btn_surfs.append(img)
 
-    
-    def on_progress(self):
-        # add function call to progress tracking
-        pass
+    label_font = pygame.font.SysFont("Arial", 13, bold=True)
 
-    def on_login(self):
-        age_picker(current_username)
-        pass
+    clock = pygame.time.Clock()
+    running = True
 
-    def on_sticker(self):
-        show_inventory(current_username)
-        pass
+    while running:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                running = False
+            elif ev.type == pygame.KEYDOWN and ev.key == pygame.K_ESCAPE:
+                running = False
+            elif ev.type == pygame.VIDEORESIZE:
+                screen = pygame.display.set_mode((ev.w, ev.h), pygame.RESIZABLE)
+            elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
+                mx, my = ev.pos
+                # test each button rect
+                for rect, func in button_rects:
+                    if rect.collidepoint(mx, my):
+                        func()
+                        break
+
+        screen.fill(BG_OUTER)
+
+        W, H = screen.get_size()
+        inner_rect = pygame.Rect(10, 10, W-20, H-20)
+        pygame.draw.rect(screen, BG_INNER, inner_rect)
+
+        logo_rect = logo_surf.get_rect()
+        logo_rect.centerx = W // 2
+        logo_rect.top     = inner_rect.top + PADDING_TOP
+        screen.blit(logo_surf, logo_rect)
+
+        total_w = BTN_SIZE[0]*3 + BTN_GAP*2
+        start_x = (W - total_w)//2
+        btn_y   = logo_rect.bottom + PADDING_TOP
+
+        button_rects = []
+        for i, surf in enumerate(btn_surfs):
+            x = start_x + i*(BTN_SIZE[0] + BTN_GAP)
+            rect = pygame.Rect(x, btn_y, *BTN_SIZE)
+            screen.blit(surf, rect.topleft)
+            button_rects.append((rect, btn_funcs[i]))
+
+            lbl_s = label_font.render(btn_labels[i], True, TEXT_COLOR)
+            lbl_r = lbl_s.get_rect(center=(x + BTN_SIZE[0]//2,
+                                           btn_y + BTN_SIZE[1] + 16))
+            screen.blit(lbl_s, lbl_r)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+    pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
-    current_username=show_login_window()
-    root = tk.Tk()
-    app = HomeScreen(root)
-    root.mainloop()
+    landing_page_pygame()
