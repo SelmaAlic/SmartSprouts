@@ -26,6 +26,7 @@ root = None
 message_label = None
 button_frame = None
 start_button= None
+try_again_button= None
 sticker_frame = None
 color_buttons = {}
 
@@ -59,20 +60,6 @@ def build_ui():
 
     sticker_frame = tk.Frame(frame, bg="#f7e7ce")
     sticker_frame.pack(pady=10)
-"""
-def restart():
-    global current_round, mistakes
-    if start_button:
-        try:
-            start_button.destroy()
-        except:
-            pass
-    sequence.clear()
-    user_sequence.clear()
-    current_round=1
-    mistakes=0
-    show_start_button
-"""
 
 def show_start_button():
     global start_button
@@ -130,11 +117,13 @@ def user_input(color):
     idx = len(user_sequence)
     user_sequence.append(color)
 
+    #User makes a mistake
     if user_sequence[idx] != sequence[idx]:
         mistakes += 1
         message_label.config(text="Wrong sequence!")
-        start_game()
+        show_try_again()
         return
+    
     if len(user_sequence) == len(sequence):
         duration = (datetime.now() - start_time).total_seconds()
         upsert_progress(current_username, GAME_NAME, current_round, duration, mistakes)
@@ -142,6 +131,32 @@ def user_input(color):
         current_round += 1
         root.after(500, next_round)
 
+def show_try_again():
+    global try_again_button
+    if try_again_button is not None:
+        try:
+            try_again_button.destroy()
+        except:
+            pass
+
+    try_again_button = tk.Button(
+        root,
+        text="Try Again",
+        font=("Arial", 18),
+        bg="#D26155",
+        fg="white",
+        command=reset_to_start
+    )
+    try_again_button.pack(side=tk.BOTTOM, pady=20)
+
+def reset_to_start():
+    global try_again_button
+    if try_again_button is not None:
+        try:
+            try_again_button.destroy()
+        except:
+            pass
+    start_game()
 
 def _unlock_sequence_stickers (score):
     ACHIEVEMENTS={
