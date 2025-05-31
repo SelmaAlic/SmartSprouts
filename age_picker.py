@@ -10,7 +10,7 @@ def age_picker(current_username, on_select=None):
         on_select = game_picker
 
     info = pygame.display.Info()
-    screen_width, screen_height = info.current_w, info.current_h - 60
+    screen_width, screen_height = info.current_w, info.current_h - 40
     screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
     pygame.display.set_caption("Smart Sprouts - Age picker")
