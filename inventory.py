@@ -1,27 +1,13 @@
-# inventory.py
-
-import sys
-import os
-import io
-import urllib.request
-from PIL import Image, ImageTk
 import tkinter as tk
-import database  # assumes your database.py from earlier
+from PIL import Image, ImageTk
+import os
+import database
 
-# global that will be set by show_inventory()
 current_username = None
 
 def show_inventory(username):
     global current_username
     current_username = username
-
-    # ensure our tables exist
-    conn = database.connect_db()
-    conn.close()
-
-    # (optional) ensure user row exists in login_info
-    # you could insert here if you need:
-    # database.add_user(current_username, some_hashed_pw)
 
     games_config = {
         "sequence_game": {
@@ -55,131 +41,118 @@ def show_inventory(username):
                 2: {"file": "math2", "name": "Math Wizard"},
                 3: {"file": "math3", "name": "Calculator Master"}
             }
-        }
+        },
     }
 
     root = tk.Tk()
-    root.title("Smart Sprouts - Sticker Collection")
+    root.title("Smart Sprouts — Sticker Collection")
     root.state('zoomed')
     root.configure(bg='#88b04b')
 
-    # Header
-    header = tk.Frame(root, bg='#f7e7ce', padx=20, pady=10)
-    header.pack(fill='x')
-    tk.Label(header,
-             text="🌟 Sticker Collection 🌟",
-             font=('Arial', 22, 'bold'),
-             bg='#f7e7ce',
-             fg='#172255').pack()
-    tk.Label(header,
-             text=f"Player: {current_username}",
-             font=('Arial', 12),
-             bg='#f7e7ce',
-             fg='#172255').pack()
+    hdr = tk.Frame(root, bg='#f7e7ce', pady=10)
+    hdr.pack(fill='x')
+    tk.Label(
+        hdr,
+        text="🌟 Sticker Collection 🌟",
+        font=('Arial', 22, 'bold'),
+        bg='#f7e7ce', fg='#172255'
+    ).pack()
+    tk.Label(
+        hdr,
+        text=f"Player: {current_username}",
+        font=('Arial', 12),
+        bg='#f7e7ce', fg='#172255'
+    ).pack()
 
-    # Game selector
-    selector_frame = tk.Frame(root, bg='#f7e7ce', pady=10)
-    selector_frame.pack()
-    game_var = tk.StringVar(value="sequence_game")
+    selector = tk.Frame(root, bg='#f7e7ce', pady=10)
+    selector.pack()
+    game_var = tk.StringVar(value='sequence_game')
+
+    sticker_area = tk.Frame(root, bg='#f7e7ce')
+    sticker_area.pack(expand=True, fill='both', padx=20, pady=20)
 
     def reload_stickers():
-        # clear existing
-        for w in stickers_frame.winfo_children():
+        for w in sticker_area.winfo_children():
             w.destroy()
 
-        # make a centered container
-        container = tk.Frame(stickers_frame, bg='#f7e7ce')
-        container.place(relx=0.5, rely=0.5, anchor='center')
+        container = tk.Frame(sticker_area, bg='#f7e7ce')
+        container.pack(expand=True)
 
-        game_key = game_var.get()
-        cfg = games_config[game_key]
-#THIS PART FETCHES BEST LEVEL FROM DATABASE AND ACCORDING TO IT, UNLOCKS STICKER
-        # fetch progress
-        prog = database.get_progress(current_username, game_key)
-        level = prog.get('best_level', 0)
-
-        # award stickers
-        if level >= 2:
-            database.unlock_sticker(current_username, f"{game_key}_level_1")
-        if level >= 3:
-            database.unlock_sticker(current_username, f"{game_key}_level_2")
-        if level >= 4:
-            database.unlock_sticker(current_username, f"{game_key}_level_3")
-
+        key = game_var.get()
+        cfg = games_config[key]
         unlocked = set(database.get_unlocked_stickers(current_username))
 
-        # section title
-        tk.Label(container,
-                 text=f"{cfg['name']} Stickers",
-                 font=('Arial', 18, 'bold'),
-                 bg='#f7e7ce',
-                 fg='#172255')\
-          .grid(row=0, column=0, columnspan=3, pady=(0, 15))
+        title = tk.Label(
+            container,
+            text=f"{cfg['name']} Stickers",
+            font=('Arial', 18, 'bold'),
+            bg='#f7e7ce', fg='#172255'
+        )
+        title.grid(row=0, column=0, columnspan=3, pady=(0,15))
 
-        # each sticker
         for idx in range(1, 4):
-            key = f"{game_key}_level_{idx}"
-            is_unlocked = key in unlocked
-            sticker = cfg['stickers'][idx]
+            base = cfg['stickers'][idx]
+            sticker_key = base['file']
+            is_unlocked = sticker_key in unlocked
 
-            frame = tk.Frame(container,
-                             bg='white',
-                             bd=3,
-                             highlightbackground='#6FA547' if is_unlocked else '#bdc3c7',
-                             highlightthickness=3 if is_unlocked else 1)
-            frame.grid(row=1, column=idx - 1, padx=15, pady=10)
+            frame = tk.Frame(
+                container,
+                bg='white',
+                bd=3,
+                highlightbackground='#6FA547' if is_unlocked else '#bdc3c7',
+                highlightthickness=3 if is_unlocked else 1
+            )
+            frame.grid(row=1, column=idx-1, padx=15, pady=10)
 
-            variant = 'color' if is_unlocked else 'gray'
-            filename = f"{sticker['file']}_{variant}.png"
-            local_path = os.path.join("assets", filename)
-            if os.path.exists(local_path):
-                img = Image.open(local_path).resize((80, 80), Image.LANCZOS)
+            if is_unlocked:
+                filename = f"{base['file']}.png"
             else:
-                img = Image.new('RGBA', (80, 80), (200, 200, 200, 255))
+                filename = f"{base['file']}_gray.png"
+
+            local = os.path.join('assets', filename)
+            if os.path.exists(local):
+                img = Image.open(local).resize((80,80), Image.LANCZOS)
+            else:
+                img = Image.new('RGBA', (80,80), (200,200,200,255))
 
             photo = ImageTk.PhotoImage(img)
-            lbl_img = tk.Label(frame, image=photo, bg='white')
-            lbl_img.image = photo
-            lbl_img.pack(pady=10)
+            lbl = tk.Label(frame, image=photo, bg='white')
+            lbl.image = photo
+            lbl.pack(pady=10)
 
-            tk.Label(frame,
-                     text=sticker['name'],
-                     font=('Arial', 12, 'bold'),
-                     bg='white',
-                     fg='#6FA547' if is_unlocked else '#95a5a6').pack()
-            status = '✅ UNLOCKED' if is_unlocked else f'🔒 Reach Level {idx+1}'
-            tk.Label(frame,
-                     text=status,
-                     font=('Arial', 10, 'bold'),
-                     bg='white',
-                     fg='#6FA547' if is_unlocked else '#95a5a6').pack(pady=(0,5))
+            tk.Label(
+                frame,
+                text=base['name'],
+                font=('Arial',12,'bold'),
+                bg='white',
+                fg='#6FA547' if is_unlocked else '#95a5a6'
+            ).pack()
 
-    # build radio buttons
-    for key, cfg in games_config.items():
-        rb = tk.Radiobutton(selector_frame,
-                            text=cfg['name'],
-                            variable=game_var,
-                            value=key,
-                            command=reload_stickers,
-                            font=('Arial',12,'bold'),
-                            bg='#f7e7ce',
-                            fg='#333333',
-                            indicatoron=0,
-                            width=18,
-                            pady=8,
-                            selectcolor='#6FA547',
-                            activebackground='#e6d4b7',
-                            activeforeground='#6FA547',
-                            relief='raised',
-                            bd=2)
+            if is_unlocked:
+                status = '✅ UNLOCKED'
+                tk.Label(
+                    frame,
+                    text=status,
+                    font=('Arial',10,'bold'),
+                    bg='white',
+                    fg='#6FA547'
+                ).pack(pady=(0,5))
+
+    for game_key, cfg in games_config.items():
+        rb = tk.Radiobutton(
+            selector,
+            text=cfg['name'],
+            variable=game_var,
+            value=game_key,
+            command=reload_stickers,
+            font=('Arial',12,'bold'),
+            bg='#f7e7ce',
+            fg='#333333',
+            indicatoron=0,
+            width=18,
+            pady=8
+        )
         rb.pack(side='left', padx=5)
 
-    # area where stickers appear
-    stickers_frame = tk.Frame(root, bg='#f7e7ce')
-    stickers_frame.pack(expand=True, fill='both', padx=20, pady=20)
-
-    # initial load
     reload_stickers()
-
     root.mainloop()
-
