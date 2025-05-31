@@ -135,9 +135,9 @@ def memory_cards_easy(username):
     total_mistakes = 0
 
     achievements = {
-        "finish_1_level": "Sticker_1",
-        "finish_3_levels": "Sticker_3",
-        "finish_all_levels": "Sticker_all"
+        "finish_1_level": "memory1",
+        "finish_3_levels": "memory2",
+        "finish_all_levels": "memory3"
     }
     achievement_popups = []
     ACHIEVEMENT_POPUP_DURATION = 2000

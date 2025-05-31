@@ -124,10 +124,9 @@ def memory_cards_hard(username):
         game_completed = False
 
     achievements = {
-        "finish_5_levels": "Sticker_5",
-        "finish_all_levels": "Sticker_all",
-        "finish_5_levels_3_mistakes": "Sticker_5_3",
-        "finish_all_levels_3_mistakes": "Sticker_all_3"
+        "finish_5_levels": "memory1",
+        "finish_all_levels": "memory2",
+        "finish_5_levels_3_mistakes": "memory3",
     }
     level_mistakes = [None] * MAX_LEVEL
     running = True
