@@ -2,6 +2,8 @@ import pygame
 import os
 import sys
 import ctypes
+import tkinter as tk
+from tkinter import messagebox
 
 from math_game_easy import math_easy
 from math_game_hard import math_hard
@@ -11,6 +13,12 @@ from sorting_game import sorting_easy
 from sorting_numbers_game import sorting_hard
 from memory_cards_easy import memory_cards_easy
 from memory_cards_hard import memory_cards_hard
+
+#imports for sync functionality
+from database import connect_db
+from cloud_api import connect_cloud
+from sync import cloud_sync
+from net_util import is_internet_available
 
 def game_picker(difficulty, current_username):
     def on_math():
@@ -38,7 +46,37 @@ def game_picker(difficulty, current_username):
             memory_cards_hard(current_username)
 
     def on_cloud_sync():
-        print("cloud sync")
+        root = tk.Tk()
+        root.withdraw()
+
+        if not is_internet_available():
+            messagebox.showerror("No Connection", "No internet connection.\nPlease connect to Wi-Fi and try again.")
+            root.destroy()
+            return
+
+        # If user is online:
+        cloud_conn_str = "sqlitecloud://cz0s4hgxnz.g6.sqlite.cloud:8860/database.db?apikey=w1Q0wgb3dEbBL9iiUtDIO8uh29bg3Trn8b9pLmt9Qvg"
+        tables = ["login_info", "progress_tracking", "rewards"]
+        sync_manager_ready = True
+
+        try:
+            local_conn = connect_db()
+            cloud_conn = connect_cloud(cloud_conn_str)
+
+            success = cloud_sync(current_username, local_conn, cloud_conn, tables, sync_manager_ready)
+
+            if success:
+                messagebox.showinfo("Sync Status", "Cloud sync completed successfully!")
+            else:
+                messagebox.showerror("Sync Status", "Cloud sync failed. Try again later.")
+
+            local_conn.close()
+            cloud_conn.close()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Unexpected error during sync:\n{e}")
+
+        root.destroy()
 
     info = pygame.display.Info()
     screen_width, screen_height = info.current_w, info.current_h - 40
@@ -134,12 +172,10 @@ def game_picker(difficulty, current_username):
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
-                # Cloud
-                if cloud_img and c_rect.collidepoint(pos) or (not cloud_img and c_rect.collidepoint(pos)):
+                # Cloud button click
+                if c_rect.collidepoint(pos):
                     on_cloud_sync()
-                    running = False
-                    break
-                # Buttons
+                # Game button click
                 for idx, rect in enumerate(btn_rects):
                     if rect.collidepoint(pos):
                         btn_info[idx]["callback"]()
