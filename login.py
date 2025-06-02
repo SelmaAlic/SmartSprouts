@@ -64,7 +64,10 @@ def show_login_window(parent=None):
     root = tk.Tk()
     root.title("Smart Sprouts Login")
     root.state('zoomed')
-    root.iconbitmap(resource_path(os.path.join("assets", "logo2.ico")))
+   
+    abs_path = os.path.abspath(resource_path("assets/logo2.ico"))
+    root.iconbitmap(abs_path)
+
 
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
