@@ -1,11 +1,12 @@
 import pygame
 import sys
 import os
-
+from utils import resource_path
 from login import show_login_window
-from age_picker import age_picker
 from inventory import show_inventory
 from progress_tracking_page import progress_tracker
+from age_picker import age_pkr
+
 
 BG_OUTER= (0x2C, 0x81, 0x02)
 BG_INNER= (0xF7, 0xE7, 0xCE)
@@ -17,7 +18,7 @@ LOGO_SIZE= (630, 400)
 PADDING_TOP= 30
 
 def landing_page_pygame():
-    #Opens login window
+
     current_username = show_login_window()
     if not current_username:
         sys.exit(0)
@@ -31,30 +32,32 @@ def landing_page_pygame():
 
     screen = pygame.display.set_mode((screen_w, win_h), pygame.RESIZABLE)
     pygame.display.set_caption("Smart Sprouts - Home")
-
-    logo_path = os.path.join("assets", "logo2.ico")
+    logo_path = resource_path(os.path.join("assets", "logo2.ico"))
     if os.path.exists(logo_path):
         try:
             ico = pygame.image.load(logo_path)
             pygame.display.set_icon(ico)
         except Exception:
-            pass
+                pass
 
-    logo_surf = pygame.image.load(os.path.join("assets", "logo.png")).convert_alpha()
+    logo_surf = pygame.image.load(resource_path(os.path.join("assets", "logo.png"))).convert_alpha()
     logo_surf = pygame.transform.smoothscale(logo_surf, LOGO_SIZE)
+
 
     btn_files = [ "progress.png", "login.png", "stickers.png" ]
     btn_labels= [ "Progress Tracking", "Play", "Sticker Collection" ]
     btn_funcs = [ lambda: progress_tracker(current_username),
-                  lambda: age_picker(current_username),
+                  lambda: age_pkr(current_username),
                   lambda: show_inventory(current_username) ]
 
     btn_surfs = []
+
     for fn in btn_files:
-        path = os.path.join("assets", fn)
+        path = resource_path(os.path.join("assets", fn))
         img  = pygame.image.load(path).convert_alpha()
         img  = pygame.transform.smoothscale(img, BTN_SIZE)
         btn_surfs.append(img)
+
 
     label_font = pygame.font.SysFont("Arial", 13, bold=True)
 

@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import random
-import os
 from datetime import datetime
 import sqlite3
 from database import get_progress, upsert_progress, unlock_sticker, get_unlocked_stickers

@@ -2,6 +2,7 @@ import pygame
 import random
 import os
 import math
+from utils import resource_path
 from database import (
     upsert_progress,
     unlock_sticker,
@@ -12,13 +13,12 @@ from database import (
     connect_db
 )
 
-
 MAX_LEVEL = 10
 pygame.init()
 WIDTH, HEIGHT = 1300, 780
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-image_folder = os.path.join(script_dir, "assets")
+image_folder = resource_path(os.path.join(script_dir, "assets"))
 font= pygame.font.Font('Pixellettersful.ttf', 46)
 
 BUTTON_WIDTH, BUTTON_HEIGHT = 200, 50

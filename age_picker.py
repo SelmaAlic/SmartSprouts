@@ -3,18 +3,21 @@ import os
 import sys
 import ctypes
 
+from utils import resource_path
 from game_picker import game_picker
+print("Loaded age_picker.py")
 
-def age_picker(current_username, on_select=None):
+def age_pkr(current_username, on_select=None):
     if on_select is None:
         on_select = game_picker
 
+    print("Hello from age_picker!")
     info = pygame.display.Info()
     screen_width, screen_height = info.current_w, info.current_h - 40
     screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
 
     pygame.display.set_caption("Smart Sprouts - Age picker")
-    logo_path = os.path.join("assets", "logo2.ico")
+    logo_path = resource_path(os.path.join("assets", "logo2.ico"))
     if os.path.exists(logo_path):
         try:
             pygame.display.set_icon(pygame.image.load(logo_path))
@@ -46,7 +49,7 @@ def age_picker(current_username, on_select=None):
 
     btn_imgs = []
     for info in btn_info:
-        img_path = os.path.join("assets", info["img"])
+        img_path = resource_path(os.path.join("assets", info["img"]))
         img = pygame.image.load(img_path).convert_alpha()
         img = pygame.transform.smoothscale(img, (btn_w, btn_h))
         btn_imgs.append(img)

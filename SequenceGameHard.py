@@ -1,7 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
 import random
-import os
 from datetime import datetime
 from database import get_progress, upsert_progress, unlock_sticker, get_unlocked_stickers
 

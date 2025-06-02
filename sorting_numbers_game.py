@@ -3,7 +3,7 @@ import random
 import sys
 import time
 from datetime import datetime
-import os
+from utils import resource_path
 
 from database import (
     init_db,
@@ -57,7 +57,7 @@ def sorting_hard(current_username):
 
     pygame.init()
     try:
-        icon = pygame.image.load("logo.png")
+        icon = resource_path(pygame.image.load("logo.png"))
         pygame.display.set_icon(icon)
     except:
         pass

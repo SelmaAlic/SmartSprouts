@@ -7,10 +7,10 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+from utils import resource_path
 
 from auth import authenticate
 from encryption import to_encrypt
-from age_picker import age_picker
 
 current_username=" "
 
@@ -55,7 +55,6 @@ def on_enter(e, btn, hover_color):
 def on_leave(e, btn, original_color):
     btn.config(bg=original_color)
 
-#Wrapping login GUI in a callable function
 def show_login_window(parent=None): 
     global username_entry, password_entry, root, current_username 
 
@@ -65,7 +64,7 @@ def show_login_window(parent=None):
     root = tk.Tk()
     root.title("Smart Sprouts Login")
     root.state('zoomed')
-    root.iconbitmap(os.path.join("assets", "logo2.ico"))
+    root.iconbitmap(resource_path(os.path.join("assets", "logo2.ico")))
 
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
@@ -80,7 +79,7 @@ def show_login_window(parent=None):
     frame.place(relx=0.5, rely=0.5, anchor="center")
 
     try:
-        logo_img = Image.open(os.path.join("assets", "logo.png"))
+        logo_img = Image.open(resource_path(os.path.join("assets", "logo.png")))
         logo_img = logo_img.resize((400, 250))
         logo_photo = ImageTk.PhotoImage(logo_img)
         logo_label = tk.Label(frame, image=logo_photo, bg="#f7e7ce")

@@ -4,6 +4,7 @@ import sys
 import ctypes
 import tkinter as tk
 from tkinter import messagebox
+from utils import resource_path
 
 from math_game_easy import math_easy
 from math_game_hard import math_hard
@@ -19,6 +20,7 @@ from database import connect_db
 from cloud_api import connect_cloud
 from sync import cloud_sync
 from net_util import is_internet_available
+
 
 def game_picker(difficulty, current_username):
     def on_math():
@@ -98,7 +100,7 @@ def game_picker(difficulty, current_username):
     TITLE_FONT = pygame.font.SysFont("Arial", 36, bold=True)
 
     # Cloud icon/text
-    cloud_icon_path = os.path.join("assets", "cloud_sync_btn.png")
+    cloud_icon_path = resource_path(os.path.join("assets", "cloud_sync_btn.png"))
     if os.path.exists(cloud_icon_path):
         cloud_img = pygame.image.load(cloud_icon_path).convert_alpha()
         cloud_img = pygame.transform.smoothscale(cloud_img, (80, 80))
@@ -107,7 +109,7 @@ def game_picker(difficulty, current_username):
         cloud_text = LABEL_FONT.render("Cloud Sync", True, TEXT_COLOR)
 
     # Logo
-    logo_path = os.path.join("assets", "logo.png")
+    logo_path = resource_path(os.path.join("assets", "logo.png"))
     logo_img = pygame.image.load(logo_path).convert_alpha()
     logo_img = pygame.transform.smoothscale(logo_img, (480, 280))
 
@@ -122,7 +124,7 @@ def game_picker(difficulty, current_username):
     btn_gap_x, btn_gap_y = 60, 80
     btn_surfaces = []
     for info in btn_info:
-        surf = pygame.image.load(os.path.join("assets", info["img"]))
+        surf = pygame.image.load(resource_path(os.path.join("assets", info["img"])))
         surf = pygame.transform.smoothscale(surf, (btn_w, btn_h))
         btn_surfaces.append(surf)
 

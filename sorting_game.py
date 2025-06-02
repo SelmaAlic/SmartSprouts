@@ -3,8 +3,7 @@ import random
 import sys
 import time
 from datetime import datetime
-import os
-
+from utils import resource_path
 from database import init_db, ensure_user, get_progress, upsert_progress, get_unlocked_stickers, unlock_sticker
 
 DB_PATH = "database.db"
@@ -38,7 +37,7 @@ def sorting_easy(user):
     screen = pygame.display.set_mode((desktop_w, desktop_h), pygame.RESIZABLE)
     pygame.display.set_caption("Color Sort")
     try:
-        icon = pygame.image.load('logo.png')
+        icon = resource_path(pygame.image.load('logo.png'))
         pygame.display.set_icon(icon)
     except:
         pass

@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 from database import unlock_sticker, get_progress, upsert_progress, get_unlocked_stickers
 
+
 current_username=None
 game_name="math_easy"
 high_score=0
@@ -16,7 +17,7 @@ database_path="database.db"
 def connect_db():
     return sqlite3.connect(database_path)
 
-#This part is game logic
+
 def math_easy(current_username_param):
     global current_username,high_score
     current_username=current_username_param

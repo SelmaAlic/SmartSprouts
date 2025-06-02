@@ -2,8 +2,9 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import sqlite3
 import os
+from utils import resource_path
 
-# Make sure these codes exactly match the game_name values you pass into update_progress()
+
 GAMES = [
     ("Math Game",      "math",    "math_btn.png"),
     ("Sorting",        "sorting", "sorting_btn.png"),
@@ -16,7 +17,6 @@ DIFFICULTIES = [
 ]
 
 def get_user_progress(username):
-    # 1) Connect to the same DB your games use
     conn = sqlite3.connect('database.db')
     cur  = conn.cursor()
 
@@ -24,7 +24,6 @@ def get_user_progress(username):
     for display_name, game_code, _icon in GAMES:
         for diff_label, diff_code in DIFFICULTIES:
             game_name = f"{game_code}_{diff_code}"  
-            # 2) Query the single progress_tracking table
             cur.execute('''
                 SELECT best_level, mistakes, last_played
                   FROM progress_tracking
@@ -43,25 +42,22 @@ def get_user_progress(username):
     return progress
 
 def progress_tracker(username, master=None):
-    # Create or reuse a window
     root = tk.Toplevel(master) if master else tk.Tk()
     root.title(f"{username}'s Progress")
     root.configure(bg="#2C8102")
     root.state("zoomed")
 
-    # Set your icon
-    ico = os.path.join("assets","logo2.ico")
+    ico =  resource_path(os.path.join("assets","logo2.ico"))
     if os.path.exists(ico):
         root.iconbitmap(ico)
 
-    # Outer border/frame
     border = tk.Frame(root, bg="#2C8102", padx=5, pady=5)
     border.pack(expand=True, fill="both", padx=15, pady=15)
     content = tk.Frame(border, bg="#f7e7ce")
     content.pack(expand=True, fill="both")
 
-    # Logo
-    logo_path = os.path.join("assets","logo.png")
+    
+    logo_path = resource_path(os.path.join("assets","logo.png"))
     if os.path.exists(logo_path):
         img = Image.open(logo_path).resize((220,120), Image.LANCZOS)
         ph = ImageTk.PhotoImage(img)
@@ -77,10 +73,9 @@ def progress_tracker(username, master=None):
                    bg="#f7e7ce", fg="#2C8102")
     sub.grid(row=1, column=0, columnspan=4, pady=(0,20))
 
-    # Fetch
+   
     data = get_user_progress(username)
 
-    # Build a grid of frames, one per game/difficulty
     for col, (_display, game_code, icon_fn) in enumerate(GAMES):
         for row, (_label, diff_code) in enumerate(DIFFICULTIES):
             p = data[(game_code, diff_code)]
@@ -91,8 +86,7 @@ def progress_tracker(username, master=None):
             content.grid_rowconfigure(row+2, weight=1)
             content.grid_columnconfigure(col, weight=1)
 
-            # Small icon
-            path = os.path.join("assets", icon_fn)
+            path = resource_path(os.path.join("assets", icon_fn))
             if os.path.exists(path):
                 ico = Image.open(path).resize((48,48), Image.LANCZOS)
                 ph = ImageTk.PhotoImage(ico)
@@ -100,11 +94,9 @@ def progress_tracker(username, master=None):
                 lbl.image = ph
                 lbl.pack(pady=(0,6))
 
-            # Title
             tk.Label(frame, text=p["display_name"], font=("Arial",16,"bold"),
                      bg="#f7e7ce", fg="#2C8102").pack(pady=(0,10))
 
-            # Stats
             info_font = ("Arial",13)
             tk.Label(frame, text=f"Highest Level: {p['max_level']}",
                      font=info_font, bg="#f7e7ce", anchor="w").pack(anchor="w")
