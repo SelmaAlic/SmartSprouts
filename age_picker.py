@@ -5,6 +5,7 @@ import ctypes
 
 from utils import resource_path
 from game_picker import game_picker
+pygame.font.init()
 
 def age_pkr(current_username, on_select=None):
     if on_select is None:
@@ -111,7 +112,7 @@ def age_pkr(current_username, on_select=None):
             if event.type == pygame.QUIT:
                 running = False
                 from landing_page import landing_page_pygame 
-                landing_page_pygame()
+                landing_page_pygame(current_username)
                 return
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False

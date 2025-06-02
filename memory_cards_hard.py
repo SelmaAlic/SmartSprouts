@@ -8,13 +8,12 @@ from database import (
     unlock_sticker,
     get_progress,
     get_unlocked_stickers,
-    ensure_user
 )
 
 
 MAX_LEVEL = 10
 pygame.init()
-WIDTH, HEIGHT = 1300, 780
+WIDTH, HEIGHT = 1300, 880
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 image_folder = resource_path(os.path.join(script_dir, "assets"))
@@ -368,6 +367,25 @@ def memory_cards_hard(current_dfficulty, username):
             text_rect = try_text.get_rect(center=(current_width // 2, current_height // 2))
             screen.blit(try_text, text_rect)
 
+        current_time = pygame.time.get_ticks()
+        for popup in achievement_popups[:]:
+            print("Attempting to draw popup:", popup)
+            sticker_name, popup_time = popup
+            if current_time - popup_time < ACHIEVEMENT_POPUP_DURATION:
+
+                popup_surface = font.render(f"Achievement Unlocked: {sticker_name}", True, (255, 215, 0))
+                padding = 20
+                rect = popup_surface.get_rect()
+                rect.bottomright = (screen.get_width() - padding, screen.get_height() - padding)
+                bg_surface = pygame.Surface(rect.size)
+                bg_surface.set_alpha(180)  
+                bg_surface.fill((0, 0, 0))  
+                screen.blit(bg_surface, rect.topleft)
+       
+                screen.blit(popup_surface, rect.topleft)
+            else:
+                achievement_popups.remove(popup)
+                
         pygame.display.flip()
         clock.tick(60)
 

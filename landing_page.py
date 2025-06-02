@@ -17,17 +17,16 @@ BTN_GAP= 40
 LOGO_SIZE= (630, 400)
 PADDING_TOP= 30
 
-def landing_page_pygame():
-
-    current_username = show_login_window()
+def landing_page_pygame(current_username=None):
     if not current_username:
-        sys.exit(0)
+        current_username = show_login_window()
+        if not current_username:
+            sys.exit(0)
 
     pygame.init()
 
     info = pygame.display.Info()
     screen_w, screen_h = info.current_w, info.current_h
-    # left room for white bar at the top
     win_h = screen_h-40
 
     screen = pygame.display.set_mode((screen_w, win_h), pygame.RESIZABLE)
@@ -74,7 +73,6 @@ def landing_page_pygame():
                 screen = pygame.display.set_mode((ev.w, ev.h), pygame.RESIZABLE)
             elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1:
                 mx, my = ev.pos
-                # test each button rect
                 for rect, func in button_rects:
                     if rect.collidepoint(mx, my):
                         func()

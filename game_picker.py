@@ -24,6 +24,7 @@ from net_util import is_internet_available
 init_db()
 
 def game_picker(difficulty, current_username):
+    pygame.init()
     def on_math():
         if difficulty == "easy":
             math_easy(difficulty, current_username)
@@ -168,8 +169,8 @@ def game_picker(difficulty, current_username):
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
-                from age_picker import age_picker 
-                age_picker(current_username)
+                from age_picker import age_pkr 
+                age_pkr(current_username)
                 return
             elif event.type == pygame.VIDEORESIZE:
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)

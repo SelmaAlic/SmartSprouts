@@ -8,15 +8,13 @@ from database import (
     unlock_sticker,
     get_progress,
     get_unlocked_stickers,
-    ensure_user,
-    init_db,
-    connect_db
+  
 )
 
 
 MAX_LEVEL = 10
 pygame.init()
-WIDTH, HEIGHT = 1300, 780
+WIDTH, HEIGHT = 1300, 880
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 image_folder = resource_path(os.path.join(script_dir, "assets"))
@@ -150,7 +148,8 @@ def memory_cards_easy(current_difficulty, username):
             unlock_sticker(username, sticker_name)
             unlocked_stickers.add(sticker_name)
             achievement_popups.append((sticker_name, pygame.time.get_ticks()))
-            print(f"Sticker unlocked for achievement: {sticker_name}")
+            print("Popup added:", achievement_popups)
+         
 
     def check_achievements(level):
         if level == 1:
@@ -342,6 +341,25 @@ def memory_cards_easy(current_difficulty, username):
                 clock.tick(60)
             continue
 
+        current_time = pygame.time.get_ticks()
+
+        for popup in achievement_popups[:]:
+            print("Attempting to draw popup:", popup)
+            sticker_name, popup_time = popup
+            if current_time - popup_time < ACHIEVEMENT_POPUP_DURATION:
+
+                popup_surface = font.render(f"Achievement Unlocked: {sticker_name}", True, (255, 215, 0))
+                padding = 20
+                rect = popup_surface.get_rect()
+                rect.bottomright = (screen.get_width() - padding, screen.get_height() - padding)
+                bg_surface = pygame.Surface(rect.size)
+                bg_surface.set_alpha(180)  
+                bg_surface.fill((0, 0, 0))  
+                screen.blit(bg_surface, rect.topleft)
+       
+                screen.blit(popup_surface, rect.topleft)
+            else:
+                achievement_popups.remove(popup)
         pygame.display.flip()
         clock.tick(60)
 

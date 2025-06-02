@@ -4,13 +4,42 @@ import sqlite3
 import bcrypt
 from PIL import Image, ImageTk
 import smtplib
+import sqlitecloud
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
 from utils import resource_path
-
+import bcrypt
 from auth import authenticate
-from encryption import to_encrypt
+
+
+def hash_password(password):
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def verify_password(plain_password, hashed_password):
+    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+
+
+def cloud_authenticate(username, password):
+    try:
+        cloud_conn_str = "sqlitecloud://cz0s4hgxnz.g6.sqlite.cloud:8860/database.db?apikey=w1Q0wgb3dEbBL9iiUtDIO8uh29bg3Trn8b9pLmt9Qvg"
+        conn = sqlitecloud.connect(cloud_conn_str)
+        cursor = conn.execute(
+            "SELECT password FROM login_info WHERE username = ?",
+            (username,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            stored_hash = row[0]
+            return bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8'))
+        return False
+    except Exception as e:
+        print("Cloud auth error:", e)
+        return False
+
+
 
 current_username=" "
 
@@ -94,10 +123,11 @@ def show_login_window(parent=None):
     username_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="gray")
     username_entry.insert(0, "Username")
     username_entry.pack(pady=10)
-
-    password_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="gray", show="")
+    
+    password_entry = tk.Entry(frame, font=("Arial", 16), bd=2, relief="groove", fg="gray", show="*")
     password_entry.insert(0, "Password")
     password_entry.pack(pady=10)
+
 
     for e, p in [(username_entry, "Username"), (password_entry, "Password")]:
         e.bind("<FocusIn>", lambda e, ent=e, ph=p: clear_placeholder(e, ent, ph))
@@ -110,6 +140,16 @@ def show_login_window(parent=None):
     login_btn.pack(side="left", padx=10)
     login_btn.bind("<Enter>", lambda e: on_enter(e, login_btn, "#6dbf3d"))
     login_btn.bind("<Leave>", lambda e: on_leave(e, login_btn, "#88B04B"))
+
+    cloud_btn = tk.Button(
+        button_frame, text="Sign in with Cloud Account",
+        font=("Arial", 14, "bold"), bg="#4a90e2", fg="white", width=25,
+        command=cloud_login_window
+    )
+    cloud_btn.pack(side="left", padx=10)
+    cloud_btn.bind("<Enter>", lambda e: on_enter(e, cloud_btn, "#357ab8"))
+    cloud_btn.bind("<Leave>", lambda e: on_leave(e, cloud_btn, "#4a90e2"))
+
 
     create_account_btn = tk.Button(button_frame, text="Create Account", font=("Arial", 14, "bold"), bg="#172255", fg="white", width=16, command=open_create_account_window)
     create_account_btn.pack(side="left", padx=10)
@@ -136,10 +176,53 @@ def login():
 
     if authenticate(username, password):
         messagebox.showinfo("Login Successful", f"Welcome, {username}!")
-        current_username=username
+        current_username = username
         root.destroy()
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
+
+def cloud_login_window():
+    win = tk.Toplevel(root)
+    win.title("Cloud Login")
+    win.iconbitmap(resource_path(os.path.join("assets", "logo2.ico")))
+    win.configure(bg="#88B04B")
+    win.geometry("400x300")
+    win.grab_set()
+
+    frame = tk.Frame(win, bg="#f7e7ce", padx=20, pady=20)
+    frame.pack(expand=True, fill="both", padx=10, pady=10)
+
+    tk.Label(frame, text="Cloud Login", font=("Comic Sans MS", 18, "bold"), bg="#f7e7ce").pack(pady=10)
+
+    cloud_user_entry = tk.Entry(frame, font=("Arial", 14), fg="gray")
+    cloud_user_entry.insert(0, "Username")
+    cloud_user_entry.pack(pady=5)
+
+    cloud_pass_entry = tk.Entry(frame, font=("Arial", 14), fg="gray")
+    cloud_pass_entry.insert(0, "Password")
+    cloud_pass_entry.pack(pady=5)
+
+    for e, p in [(cloud_user_entry, "Username"), (cloud_pass_entry, "Password")]:
+        e.bind("<FocusIn>", lambda e, ent=e, ph=p: clear_placeholder(e, ent, ph))
+        e.bind("<FocusOut>", lambda e, ent=e, ph=p: restore_placeholder(e, ent, ph))
+
+    def do_cloud_login():
+        username = cloud_user_entry.get()
+        password = cloud_pass_entry.get()
+        if username in ("", "Username") or password in ("", "Password"):
+            messagebox.showwarning("Input Error", "Please enter both username and password.")
+            return
+        if cloud_authenticate(username, password):
+            messagebox.showinfo("Login Successful", f"Welcome, {username} (cloud)!")
+            global current_username
+            current_username = username
+            win.destroy()
+            root.destroy()
+        else:
+            messagebox.showerror("Login Failed", "Invalid cloud username or password.")
+
+    tk.Button(frame, text="Login", bg="#4682B4", fg="white", font=("Arial", 14, "bold"), command=do_cloud_login).pack(pady=20)
+    center_window(win)        
 
 def open_create_account_window():
     win = tk.Toplevel(root)
@@ -158,7 +241,7 @@ def open_create_account_window():
     new_user.insert(0, "Username")
     new_user.pack(pady=5)
 
-    new_pass = tk.Entry(frame, font=("Arial", 14), fg="gray")
+    new_pass = tk.Entry(frame, font=("Arial", 14), fg="gray", show="*")
     new_pass.insert(0, "Password")
     new_pass.pack(pady=5)
 
@@ -174,7 +257,7 @@ def open_create_account_window():
             messagebox.showwarning("Input Error", "Please fill all fields.")
             return
 
-        hashed_pw = to_encrypt(password)
+        hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         conn = sqlite3.connect("database.db")
         cursor = conn.cursor()
@@ -187,7 +270,14 @@ def open_create_account_window():
             messagebox.showerror("Error", "Username already exists.")
         conn.close()
 
-    tk.Button(frame, text="Create Account", bg="#4682B4", fg="white", font=("Arial", 14, "bold"), command=create_account).pack(pady=20)
+    tk.Button(
+        frame,
+        text="Create Account",
+        bg="#4682B4",
+        fg="white",
+        font=("Arial", 14, "bold"),
+        command=create_account
+    ).pack(pady=20)
     center_window(win)
 
 def forgot_password():
