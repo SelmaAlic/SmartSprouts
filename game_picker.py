@@ -16,36 +16,37 @@ from memory_cards_easy import memory_cards_easy
 from memory_cards_hard import memory_cards_hard
 
 #imports for sync functionality
+from database import init_db
 from database import connect_db
 from cloud_api import connect_cloud
 from sync import cloud_sync
 from net_util import is_internet_available
-
+init_db()
 
 def game_picker(difficulty, current_username):
     def on_math():
         if difficulty == "easy":
-            math_easy(current_username)
+            math_easy(difficulty, current_username)
         else:
-            math_hard(current_username)
+            math_hard(difficulty, current_username)
 
     def on_sorting():
         if difficulty == "easy":
-            sorting_easy(current_username)
+            sorting_easy(difficulty, current_username)
         else:
-            sorting_hard(current_username)
+            sorting_hard(difficulty, current_username)
 
     def on_sequence():
         if difficulty == "easy":
-            sequence_easy(current_username)
+            sequence_easy(difficulty, current_username)
         else:
-            sequence_hard(current_username)
+            sequence_hard(difficulty, current_username)
 
     def on_memory():
         if difficulty == "easy":
-            memory_cards_easy(current_username)
+            memory_cards_easy(difficulty, current_username)
         else:
-            memory_cards_hard(current_username)
+            memory_cards_hard(difficulty, current_username)
 
     def on_cloud_sync():
         root = tk.Tk()
@@ -92,14 +93,13 @@ def game_picker(difficulty, current_username):
 
     pygame.event.clear()
 
-    # Colors & fonts
     BG_COLOR = (44, 129, 2)
     FRAME_COLOR = (247, 231, 206)
     TEXT_COLOR = (23, 34, 85)
     LABEL_FONT = pygame.font.SysFont("Arial", 14, bold=True)
     TITLE_FONT = pygame.font.SysFont("Arial", 36, bold=True)
 
-    # Cloud icon/text
+
     cloud_icon_path = resource_path(os.path.join("assets", "cloud_sync_btn.png"))
     if os.path.exists(cloud_icon_path):
         cloud_img = pygame.image.load(cloud_icon_path).convert_alpha()
@@ -108,12 +108,11 @@ def game_picker(difficulty, current_username):
         cloud_img = None
         cloud_text = LABEL_FONT.render("Cloud Sync", True, TEXT_COLOR)
 
-    # Logo
     logo_path = resource_path(os.path.join("assets", "logo.png"))
     logo_img = pygame.image.load(logo_path).convert_alpha()
     logo_img = pygame.transform.smoothscale(logo_img, (480, 280))
 
-    # Button setup
+
     btn_info = [
         {"img": "math_btn.png", "label": "Math Game", "callback": on_math},
         {"img": "sorting_btn.png", "label": "Sorting", "callback": on_sorting},
@@ -134,12 +133,11 @@ def game_picker(difficulty, current_username):
         width, height = screen.get_size()
         pygame.draw.rect(screen, FRAME_COLOR, (10, 10, width - 20, height - 20))
 
-        # Title & logo
         screen.blit(TITLE_FONT.render("Select a Game", True, TEXT_COLOR),
                     TITLE_FONT.render("Select a Game", True, TEXT_COLOR).get_rect(center=(width // 2, 50)))
         screen.blit(logo_img, logo_img.get_rect(center=(width // 2, 150)))
 
-        # Cloud
+    
         if cloud_img:
             c_rect = cloud_img.get_rect(topright=(width - 20, 20))
             screen.blit(cloud_img, c_rect)
@@ -147,7 +145,7 @@ def game_picker(difficulty, current_username):
             c_rect = cloud_text.get_rect(topright=(width - 20, 40))
             screen.blit(cloud_text, c_rect)
 
-        # Buttons
+    
         start_y = 250
         total_w = btn_w * 2 + btn_gap_x
         start_x = (width - total_w) // 2
@@ -170,6 +168,9 @@ def game_picker(difficulty, current_username):
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
+                from age_picker import age_picker 
+                age_picker(current_username)
+                return
             elif event.type == pygame.VIDEORESIZE:
                 screen = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

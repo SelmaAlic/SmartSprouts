@@ -21,7 +21,7 @@ MARGIN = 20
 username = None
 unlocked_stickers = set()
 
-def sorting_easy(user):
+def sorting_easy(difficulty, user):
     global username, unlocked_stickers
 
     init_db(drop_existing=False)
@@ -192,6 +192,8 @@ def sorting_easy(user):
     result = run_game()
     if result is None:
         pygame.quit()
+        from game_picker import game_picker
+        game_picker(difficulty, username)
         return
 
     score = result["score"]

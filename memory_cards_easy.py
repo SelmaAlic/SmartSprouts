@@ -13,6 +13,7 @@ from database import (
     connect_db
 )
 
+
 MAX_LEVEL = 10
 pygame.init()
 WIDTH, HEIGHT = 1300, 780
@@ -100,10 +101,10 @@ def calculate_centered_grid(card_count, current_width, current_height, card_widt
     start_y = (current_height - grid_h) // 2
     return rows, cols, start_x, start_y, card_w, card_h, grid_w, grid_h
 
-def memory_cards_easy(username):
+def memory_cards_easy(current_difficulty, username):
     GAME_NAME = "memory_easy"
     MAX_LEVEL = 10
-
+    difficulty = current_difficulty
     progress = get_progress(username, GAME_NAME)
     unlocked_stickers = set(get_unlocked_stickers(username))
 
@@ -345,8 +346,7 @@ def memory_cards_easy(username):
         clock.tick(60)
 
     pygame.quit()
+    from game_picker import game_picker
+    game_picker(difficulty, username) 
 
-if __name__ == "__main__":
-    username = input("Enter your username: ")
-    memory_cards_easy(username)
    

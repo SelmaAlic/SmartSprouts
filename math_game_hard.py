@@ -16,11 +16,11 @@ database_path="database.db"
 def connect_db():
     return sqlite3.connect(database_path)
 
-#This part is game logic
-def math_hard(current_username_param):
+
+def math_hard(current_difficulty, current_username_param):
     global current_username, high_score
     current_username=current_username_param
-
+    difficulty = current_difficulty
     progress = get_progress(current_username, game_name)
     high_score = progress.get('best_level', 0)
 
@@ -65,7 +65,7 @@ def math_hard(current_username_param):
 
         #part below generates the possible answers
         q=1
-        while q<4: #fills array with 3 other distinct possible answers
+        while q<4: 
             random_number=0
             if operation==1:
                 random_number=random.randint(2,19)
@@ -75,7 +75,7 @@ def math_hard(current_username_param):
                 answers.append(random_number)
                 q=q+1
 
-        random.shuffle(answers) #randomizes the order of answers in the array 
+        random.shuffle(answers) 
 
     #displays new values for equation
     def update_equation():
@@ -176,12 +176,17 @@ def math_hard(current_username_param):
 
     #FRONT END
     window=tk.Tk()
+    def on_close():
+        window.destroy()
+        from game_picker import game_picker
+        game_picker(difficulty, current_username)
+    window.protocol("WM_DELETE_WINDOW", on_close)
     window.title("SmartSprouts Math Game")
-    window.configure(bg="#2C8102") #green color, will be seen as border
+    window.configure(bg="#2C8102") 
     window.state("zoomed")
     window.resizable(False,False)
 
-    main_frame=tk.Frame(window, bg="#D26155") #red color for filling
+    main_frame=tk.Frame(window, bg="#D26155") 
     main_frame.pack(expand=True, fill="both", padx=15, pady=15)
 
     #Logo and question frame

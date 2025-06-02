@@ -45,7 +45,7 @@ MARGIN = 20
 username = None
 unlocked_stickers = set()
 
-def sorting_hard(current_username):
+def sorting_hard(difficulty, current_username):
     global username, unlocked_stickers
 
     init_db(drop_existing=False)
@@ -238,6 +238,8 @@ def sorting_hard(current_username):
 
     if window_closed:
         pygame.quit()
+        from game_picker import game_picker
+        game_picker(difficulty, username)
         return
 
     screen.blit(bg_surface, (0, 0))

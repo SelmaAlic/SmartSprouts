@@ -5,7 +5,6 @@ import ctypes
 
 from utils import resource_path
 from game_picker import game_picker
-print("Loaded age_picker.py")
 
 def age_pkr(current_username, on_select=None):
     if on_select is None:
@@ -111,6 +110,9 @@ def age_pkr(current_username, on_select=None):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                from landing_page import landing_page_pygame 
+                landing_page_pygame()
+                return
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
             elif event.type == pygame.VIDEORESIZE:

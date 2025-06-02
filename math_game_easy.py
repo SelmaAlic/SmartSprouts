@@ -18,10 +18,10 @@ def connect_db():
     return sqlite3.connect(database_path)
 
 
-def math_easy(current_username_param):
+def math_easy(current_difficulty, current_username_param):
     global current_username,high_score
     current_username=current_username_param
-
+    difficulty= current_difficulty
     progress = get_progress(current_username, game_name)
     high_score = progress.get('best_level', 0)
 
@@ -177,6 +177,11 @@ def math_easy(current_username_param):
 
     #FRONT END
     window=tk.Tk()
+    def on_close():
+        window.destroy()
+        from game_picker import game_picker
+        game_picker(difficulty, current_username)
+    window.protocol("WM_DELETE_WINDOW", on_close)
     window.title("SmartSprouts- Math Game Easy")
     window.configure(bg="#2C8102") #green color, will be seen as border
     window.state("zoomed")

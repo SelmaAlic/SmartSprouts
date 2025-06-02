@@ -16,57 +16,57 @@ def connect_db():
     return conn
 
 def init_db(drop_existing: bool = False):
-    if not os.path.exists(DB_PATH):
-        conn = connect_db()
-        c = conn.cursor()
+    conn = connect_db()
+    c = conn.cursor()
 
-        if drop_existing:
-            c.execute("DROP TABLE IF EXISTS rewards")
-            c.execute("DROP TABLE IF EXISTS progress_tracking")
-            c.execute("DROP TABLE IF EXISTS login_info")
-            conn.commit()
-
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS login_info (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            username       TEXT UNIQUE NOT NULL,
-            password       TEXT NOT NULL,
-            sync_pending   INTEGER DEFAULT 1,
-            last_modified  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS progress_tracking (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            username       TEXT NOT NULL,
-            game_name      TEXT NOT NULL,
-            best_level     INTEGER NOT NULL DEFAULT 0,
-            best_time      REAL,
-            mistakes       INTEGER NOT NULL DEFAULT 0,
-            last_played    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            sync_pending   INTEGER NOT NULL DEFAULT 1,
-            last_modified  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(username, game_name),
-            FOREIGN KEY(username) REFERENCES login_info(username) ON DELETE CASCADE
-        )
-        ''')
-
-        c.execute('''
-        CREATE TABLE IF NOT EXISTS rewards (
-            id             INTEGER PRIMARY KEY AUTOINCREMENT,
-            username       TEXT NOT NULL,
-            sticker_name   TEXT NOT NULL,
-            unlocked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            sync_pending   INTEGER NOT NULL DEFAULT 1,
-            last_modified  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(username, sticker_name),
-            FOREIGN KEY(username) REFERENCES login_info(username) ON DELETE CASCADE
-        )
-        ''')
-
+    if drop_existing:
+        c.execute("DROP TABLE IF EXISTS rewards")
+        c.execute("DROP TABLE IF EXISTS progress_tracking")
+        c.execute("DROP TABLE IF EXISTS login_info")
         conn.commit()
-        conn.close()
+
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS login_info (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        username       TEXT UNIQUE NOT NULL,
+        password       TEXT NOT NULL,
+        sync_pending   INTEGER DEFAULT 1,
+        last_modified  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS progress_tracking (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        username       TEXT NOT NULL,
+        game_name      TEXT NOT NULL,
+        best_level     INTEGER NOT NULL DEFAULT 0,
+        best_time      REAL,
+        mistakes       INTEGER NOT NULL DEFAULT 0,
+        last_played    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sync_pending   INTEGER NOT NULL DEFAULT 1,
+        last_modified  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(username, game_name),
+        FOREIGN KEY(username) REFERENCES login_info(username) ON DELETE CASCADE
+    )
+    ''')
+
+    c.execute('''
+    CREATE TABLE IF NOT EXISTS rewards (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        username       TEXT NOT NULL,
+        sticker_name   TEXT NOT NULL,
+        unlocked_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        sync_pending   INTEGER NOT NULL DEFAULT 1,
+        last_modified  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(username, sticker_name),
+        FOREIGN KEY(username) REFERENCES login_info(username) ON DELETE CASCADE
+    )
+    ''')
+
+    conn.commit()
+    conn.close()
+
 
 def ensure_user(username: str, password: str = "") -> int:
     conn = connect_db()

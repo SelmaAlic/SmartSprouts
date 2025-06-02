@@ -144,7 +144,7 @@ def login():
 def open_create_account_window():
     win = tk.Toplevel(root)
     win.title("Create Account")
-    win.iconbitmap(os.path.join("assets", "logo2.ico"))
+    win.iconbitmap(resource_path(os.path.join("assets", "logo2.ico")))
     win.configure(bg="#88B04B")
     win.geometry("400x500")
     win.grab_set()

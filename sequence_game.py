@@ -178,12 +178,18 @@ def show_sticker_popup(name, lvl):
     lbl.pack(pady=10)
     tk.Button(popup, text="Close", command=popup.destroy).pack(pady=5)
 
-def sequence_easy(username_param):
+def sequence_easy(difficulty, username_param):
     global root, current_username, unlocked_stickers
     current_username=username_param
     unlocked_stickers=set(get_unlocked_stickers(current_username))
 
     root = tk.Tk()
+    def on_close():
+        root.destroy()
+        from game_picker import game_picker 
+        game_picker(difficulty, current_username)
+    root.protocol("WM_DELETE_WINDOW", on_close)
+
     build_ui()
     show_start_button()
     root.mainloop()

@@ -99,17 +99,17 @@ def calculate_centered_grid(card_count, current_width, current_height, card_widt
     start_y = (current_height - grid_h) // 2
     return rows, cols, start_x, start_y, card_w, card_h, grid_w, grid_h
 
-def memory_cards_hard(username):
+def memory_cards_hard(current_dfficulty, username):
     GAME_NAME = "memory_hard"
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-    logo_original = pygame.image.load(os.path.join(image_folder, 'logo.png')).convert_alpha()
+    logo_original = pygame.image.load(resource_path(os.path.join(image_folder, 'logo.png'))).convert_alpha()
     logo_icon = pygame.transform.smoothscale(logo_original, (32, 32))
     pygame.display.set_caption("Memory Card Game")
     pygame.display.set_icon(logo_icon)
     clock = pygame.time.Clock()
     used_images = set()
-
+    difficulty = current_dfficulty
     progress = get_progress(username, GAME_NAME)
     unlocked_stickers = set(get_unlocked_stickers(username))
 
@@ -372,7 +372,6 @@ def memory_cards_hard(username):
         clock.tick(60)
 
     pygame.quit()
+    from game_picker import game_picker
+    game_picker(difficulty, username)
 
-if __name__ == "__main__":
-    username = input("Enter your username: ")
-    memory_cards_hard(username)
