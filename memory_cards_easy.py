@@ -19,7 +19,8 @@ WIDTH, HEIGHT = 1300, 780
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 image_folder = resource_path(os.path.join(script_dir, "assets"))
-font= pygame.font.Font('Pixellettersful.ttf', 46)
+font_path = resource_path("assets/Pixellettersful.ttf")
+font = pygame.font.Font(font_path, 46)
 
 BUTTON_WIDTH, BUTTON_HEIGHT = 200, 50
 BUTTON_GAP = 40
