@@ -1,7 +1,7 @@
 from net_util import is_internet_available
+import traceback
 
 def cloud_sync(username, local_conn, cloud_conn, tables, sync_manager_ready):
-
     if not is_internet_available():
         print("No internet connection. Please connect and try again.")
         return False
@@ -18,7 +18,14 @@ def cloud_sync(username, local_conn, cloud_conn, tables, sync_manager_ready):
         print(f"Sync failed. Try again later. Error: {e}")
         return False
 
+def username_exists(cloud_conn, username):
+    
+    cursor = cloud_conn.cursor()
+    cursor.execute("SELECT 1 FROM login_info WHERE username=?", (username,))
+    return cursor.fetchone() is not None
+
 def sync_all(local_conn, cloud_conn, tables, username):
+   
     for table in tables:
         sync_table(local_conn, cloud_conn, table, username)
 
@@ -32,7 +39,7 @@ def sync_table(local_conn, cloud_conn, table, username):
     cloud_conn.commit()
     local_conn.commit()
 
-   
+  
     cloud_rows, cloud_columns = get_cloud_rows(cloud_conn, table, username)
     for c_row in cloud_rows:
         local_row = get_row_by_id(local_conn, table, c_row[cloud_columns.index('id')])
@@ -48,6 +55,7 @@ def sync_table(local_conn, cloud_conn, table, username):
     local_conn.commit()
 
 def get_rows_to_sync(conn, table, username):
+    
     cursor = conn.cursor()
     rows = cursor.execute(
         f"SELECT * FROM {table} WHERE sync_pending=1 AND username=?", (username,)
@@ -56,6 +64,7 @@ def get_rows_to_sync(conn, table, username):
     return rows, columns
 
 def get_cloud_rows(cloud_conn, table, username):
+    
     cursor = cloud_conn.cursor()
     cursor.execute(f"SELECT * FROM {table} WHERE username=?", (username,))
     rows = cursor.fetchall()
@@ -63,10 +72,12 @@ def get_cloud_rows(cloud_conn, table, username):
     return rows, columns
 
 def get_row_by_id(conn, table, row_id):
+  
     cursor = conn.cursor()
     return cursor.execute(f"SELECT * FROM {table} WHERE id=?", (row_id,)).fetchone()
 
 def upsert_row(conn, table, columns, values):
+    
     cursor = conn.cursor()
     set_clause = ', '.join([f"{col}=?" for col in columns if col != 'id'])
     update_sql = f"UPDATE {table} SET {set_clause} WHERE id=?"
@@ -76,4 +87,3 @@ def upsert_row(conn, table, columns, values):
         placeholders = ','.join(['?'] * len(columns))
         insert_sql = f"INSERT INTO {table} ({','.join(columns)}) VALUES ({placeholders})"
         cursor.execute(insert_sql, values)
-
