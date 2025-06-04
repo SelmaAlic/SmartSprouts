@@ -132,10 +132,13 @@ def math_easy(current_difficulty, current_username_param):
             high_score=score
             upsert_progress(current_username, game_name, score)
 
+        sticker_this_round=False
+
         for condition, sticker_key in achievements.items():
             if score >= condition and sticker_key not in math_unlocked_stickers:
                 unlock_sticker(current_username, sticker_key)
                 math_unlocked_stickers.add(sticker_key)
+                sticker_this_round=True
 
         main_frame.pack_forget()
 
@@ -153,6 +156,10 @@ def math_easy(current_difficulty, current_username_param):
         
         try_again_button=tk.Button(gameover_frame, text="Try again", font=("Arial", 40), bg="#2c8102", fg="white", bd=2, relief="solid", command=lambda: restart_game(border_frame) )
         try_again_button.pack(pady=50)
+
+        if sticker_this_round:
+            unlocked_label = tk.Label(gameover_frame,text="You unlocked a sticker!",font=("Arial", 30, "bold"),bg="gold",fg="#ffffff",bd=2, relief="solid")
+            unlocked_label.pack(pady=30)
 
     def restart_game(frame):
         nonlocal question_number
