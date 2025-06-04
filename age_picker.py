@@ -3,15 +3,14 @@ import os
 import sys
 import ctypes
 
-from utils import resource_path
 from game_picker import game_picker
+from utils import resource_path
 pygame.font.init()
 
 def age_pkr(current_username, on_select=None):
     if on_select is None:
         on_select = game_picker
 
-    print("Hello from age_picker!")
     info = pygame.display.Info()
     screen_width, screen_height = info.current_w, info.current_h - 40
     screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
